@@ -36,7 +36,6 @@ public class PlayerSanity implements ISanity {
 	//TODO: Implement callback system
 	private final Map<Integer, Set<ResourceLocation>> unloadedCallbacks = new HashMap<>();
 	private final Map<Integer, Set<SanityCallback>> loadedCallbacks = new HashMap<>();
-
 	
 	public PlayerSanity() {
 		this(0, 100);

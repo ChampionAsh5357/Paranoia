@@ -17,19 +17,4 @@
 
 package io.github.championash5357.paranoia.client;
 
-import java.util.Optional;
-
-import io.github.championash5357.paranoia.api.util.CapabilityInstances;
-import io.github.championash5357.paranoia.common.network.server.SUpdateSanityMessage;
-import net.minecraft.entity.Entity;
-import net.minecraft.world.World;
-
-public class ClientHandler {
-
-	public static void handle(SUpdateSanityMessage message, Optional<World> opt) {
-		opt.ifPresent(world -> {
-			Entity entity = world.getEntityByID(message.getEntityId());
-			if(entity != null) entity.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(cap -> cap.deserializeNBT(message.getNbt()));
-		});
-	}
-}
+public class ClientHandler {}
