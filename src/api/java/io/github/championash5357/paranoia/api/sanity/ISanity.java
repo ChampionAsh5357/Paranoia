@@ -17,13 +17,19 @@
 
 package io.github.championash5357.paranoia.api.sanity;
 
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.common.util.INBTSerializable;
+
 //TODO: Document
-public interface ISanity {
+public interface ISanity extends INBTSerializable<CompoundNBT> {
 	
 	int getSanity();
 	
 	void setSanity(int sanity);
+	void changeSanity(int amount);
 	
-	boolean incrementSanity();
-	boolean decrementSanity();
+	void setMaxSanity(int maxSanity);
+	void changeMaxSanity(int amount);
+	void setMinSanity(int minSanity);
+	void changeMinSanity(int amount);
 }
