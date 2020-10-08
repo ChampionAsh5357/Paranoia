@@ -18,7 +18,6 @@
 package io.github.championash5357.paranoia.api.sanity;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -32,6 +31,7 @@ import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.fml.util.ThreeConsumer;
 
 //TODO: Document
 public class PlayerSanity implements ISanity {
@@ -40,10 +40,10 @@ public class PlayerSanity implements ISanity {
 	private final PlayerEntity player;
 	private boolean firstInteraction;
 	private int minSanity, maxSanity; //Should be effectively final
-	private int sanity, tempMinSanity, tempMaxSanity;
+	private int prevSanity, sanity, tempMinSanity, tempMaxSanity;
 	private final Map<Integer, Set<ResourceLocation>> unloadedCallbacks = new HashMap<>();
 	private final Map<Integer, Set<SanityCallback>> loadedCallbacks = new HashMap<>();
-	private final List<BiConsumer<ServerPlayerEntity, Integer>> deferredCallbacks = new ArrayList<>();
+	private final List<ThreeConsumer<ServerPlayerEntity, Integer, Integer>> deferredCallbacks = new ArrayList<>();
 
 	public PlayerSanity() {
 		this(null);
@@ -68,6 +68,7 @@ public class PlayerSanity implements ISanity {
 		this.tempMinSanity = tempMinSanity;
 		this.tempMaxSanity = tempMaxSanity;
 		this.sanity = sanity;
+		this.prevSanity = sanity;
 	}
 
 	@Override
@@ -82,9 +83,9 @@ public class PlayerSanity implements ISanity {
 
 	@Override
 	public void setSanity(int sanity) {
-		int originalSanity = this.sanity;
+		this.prevSanity = this.sanity;
 		this.sanity = MathHelper.clamp(sanity, this.minSanity, this.tempMaxSanity);
-		updateSanityInformation(originalSanity, this.sanity);
+		updateSanityInformation(this.prevSanity, this.sanity);
 	}
 
 	@Override
@@ -123,13 +124,13 @@ public class PlayerSanity implements ISanity {
 		if(!this.firstInteraction) this.setupInitialMaps();
 		if(originalSanity == newSanity || this.player == null || this.player.world.isRemote) return;
 		if(originalSanity > newSanity) {
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
 			for(int i = originalSanity - 1; i >= newSanity; --i) {
 				@Nullable Set<ResourceLocation> unloaded = this.unloadedCallbacks.get(i);
 				if(unloaded != null) {
 					unloaded.forEach(location -> {
 						SanityCallback callback = SanityCallbacks.createCallback(location);
-						callback.getHandler().start((ServerPlayerEntity) this.player, newSanity);
+						callback.getHandler().start((ServerPlayerEntity) this.player, newSanity, originalSanity);
 						this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 					});
 					this.unloadedCallbacks.remove(i);
@@ -140,13 +141,13 @@ public class PlayerSanity implements ISanity {
 				@Nullable Set<SanityCallback> loaded = this.loadedCallbacks.get(i);
 				if(loaded != null) {
 					loaded.forEach(callback -> {
-						callback.getHandler().stop((ServerPlayerEntity) this.player, newSanity);
+						callback.getHandler().stop((ServerPlayerEntity) this.player, newSanity, originalSanity);
 						this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());
 					});
 					this.loadedCallbacks.remove(i);
 				}
 			}
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
 		}
 	}
 
@@ -168,7 +169,7 @@ public class PlayerSanity implements ISanity {
 	
 	@Override
 	public void executeLoginCallbacks(ServerPlayerEntity player) {
-		this.deferredCallbacks.forEach(consumer -> consumer.accept(player, this.sanity));
+		this.deferredCallbacks.forEach(consumer -> consumer.accept(player, this.sanity, this.prevSanity));
 		this.deferredCallbacks.clear();
 	}
 
@@ -178,6 +179,7 @@ public class PlayerSanity implements ISanity {
 		nbt.putInt("minSanity", this.minSanity);
 		nbt.putInt("maxSanity", this.maxSanity);
 		nbt.putInt("sanity", this.sanity);
+		nbt.putInt("prevSanity", this.prevSanity);
 		nbt.putInt("tempMinSanity", this.tempMinSanity);
 		nbt.putInt("tempMaxSanity", this.tempMaxSanity);
 		nbt.putBoolean("firstInteraction", this.firstInteraction);
@@ -212,6 +214,7 @@ public class PlayerSanity implements ISanity {
 		this.minSanity = nbt.getInt("minSanity");
 		this.maxSanity = nbt.getInt("maxSanity");
 		this.sanity = nbt.getInt("sanity");
+		this.prevSanity = nbt.getInt("prevSanity");
 		this.tempMinSanity = nbt.getInt("tempMinSanity");
 		this.tempMaxSanity = nbt.getInt("tempMaxSanity");
 		this.firstInteraction = nbt.getBoolean("firstInteraction");
@@ -245,7 +248,7 @@ public class PlayerSanity implements ISanity {
 				} else if (inbt instanceof CompoundNBT) {
 					SanityCallback callback = SanityCallbacks.createCallback(new ResourceLocation(((CompoundNBT) inbt).getString("id")));
 					callback.getHandler().deserializeNBT(((CompoundNBT) inbt).getCompound("data"));
-					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity) -> callback.getHandler().start(player, sanity));
+					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().start(player, sanity, prevSanity));
 					callbacks.add(callback);
 					registryMap.remove(callback.getId());
 				} else {
@@ -257,7 +260,7 @@ public class PlayerSanity implements ISanity {
 		registryMap.forEach((id, callbackSupplier) -> {
 			SanityCallback callback = callbackSupplier.apply(id);
 			if(this.sanity <= callback.getStartSanity()) {
-				deferredCallbacks.add((player, sanity) -> callback.getHandler().start(player, sanity));
+				deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().start(player, sanity, prevSanity));
 				this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 			} else {
 				this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());

@@ -31,25 +31,24 @@ public class ClientCallback implements ICallbackHandler {
 
 	private static final Random RANDOM = new Random();
 	private boolean isRed;
-	private int prevSanity;
 	
 	@Override
-	public void start(ServerPlayerEntity player, int sanity) {
-		this.handle(player, sanity);
+	public void start(ServerPlayerEntity player, int sanity, int prevSanity) {
+		this.handle(player, sanity, prevSanity);
 	}
 
 	@Override
-	public void update(ServerPlayerEntity player, int sanity) {
-		this.handle(player, sanity);
+	public void update(ServerPlayerEntity player, int sanity, int prevSanity) {
+		this.handle(player, sanity, prevSanity);
 	}
 
 	@Override
-	public void stop(ServerPlayerEntity player, int sanity) {
+	public void stop(ServerPlayerEntity player, int sanity, int prevSanity) {
 		Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.STOP, sanity));
 	}
 	
-	private void handle(ServerPlayerEntity player, int sanity) {
-		if (sanity == 20 && this.prevSanity > sanity && !this.isRed && RANDOM.nextInt(100) < 5) {
+	private void handle(ServerPlayerEntity player, int sanity, int prevSanity) {
+		if (sanity == 20 && prevSanity > sanity && !this.isRed && RANDOM.nextInt(100) < 5) {
 			this.isRed = true;
 			Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
 		} else if (sanity > 20 && this.isRed) {
@@ -59,7 +58,6 @@ public class ClientCallback implements ICallbackHandler {
 		if(!this.isRed) {
 			Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.DESATURATION_SHADER, sanity));
 		}
-		this.prevSanity = sanity;
 	}
 
 	@Override
@@ -75,14 +73,12 @@ public class ClientCallback implements ICallbackHandler {
 	@Override
 	public void deserializeNBT(CompoundNBT nbt) {
 		this.isRed = nbt.getBoolean("isRed");
-		this.prevSanity = nbt.getInt("prevSanity");
 	}
 	
 	@Override
 	public CompoundNBT serializeNBT() {
 		CompoundNBT nbt = new CompoundNBT();
 		nbt.putBoolean("isRed", this.isRed);
-		nbt.putInt("prevSanity", this.prevSanity);
 		return nbt;
 	}
 }

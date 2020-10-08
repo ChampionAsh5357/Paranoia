@@ -24,9 +24,9 @@ import net.minecraftforge.common.util.INBTSerializable;
 //TODO: Document
 public interface ICallbackHandler extends INBTSerializable<CompoundNBT> {
 
-	void start(ServerPlayerEntity player, int sanity);
-	void update(ServerPlayerEntity player, int sanity);
-	void stop(ServerPlayerEntity player, int sanity);
+	void start(ServerPlayerEntity player, int sanity, int prevSanity);
+	void update(ServerPlayerEntity player, int sanity, int prevSanity);
+	void stop(ServerPlayerEntity player, int sanity, int prevSanity);
 	
 	default boolean restartOnReload() {
 		return false;
