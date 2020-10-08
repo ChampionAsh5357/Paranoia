@@ -17,9 +17,11 @@
 
 package io.github.championash5357.paranoia.data.client;
 
+import io.github.championash5357.paranoia.api.util.DamageSources;
 import io.github.championash5357.paranoia.common.Paranoia;
 import io.github.championash5357.paranoia.common.util.LocalizationStrings;
 import net.minecraft.data.DataGenerator;
+import net.minecraft.util.DamageSource;
 import net.minecraftforge.common.data.LanguageProvider;
 
 public class Localizations extends LanguageProvider {
@@ -35,9 +37,15 @@ public class Localizations extends LanguageProvider {
 		case "en_us":
 			add(LocalizationStrings.COMMAND_SANITY_SANITY, "Sanity");
 			add(LocalizationStrings.COMMAND_SANITY_MAX_SANITY, "Max Sanity");
+			add(DamageSources.PARANOIA, "%1$s went insane", "%1$s was too paranoid of %2$s");
 			break;
 		default:
 			break;
 		}
+	}
+	
+	protected void add(DamageSource source, String regular, String player) {
+		add("death.attack."  + source.damageType, regular);
+		add("death.attack."  + source.damageType + ".player", player);
 	}
 }

@@ -34,6 +34,7 @@ public class ClientCallback implements ICallbackHandler {
 	
 	@Override
 	public void start(ServerPlayerEntity player, int sanity, int prevSanity) {
+		if(this.isRed) Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
 		this.handle(player, sanity, prevSanity);
 	}
 
@@ -44,19 +45,19 @@ public class ClientCallback implements ICallbackHandler {
 
 	@Override
 	public void stop(ServerPlayerEntity player, int sanity, int prevSanity) {
-		Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.STOP, sanity));
+		Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.STOP, sanity));
 	}
 	
 	private void handle(ServerPlayerEntity player, int sanity, int prevSanity) {
 		if (sanity == 20 && prevSanity > sanity && !this.isRed && RANDOM.nextInt(100) < 5) {
 			this.isRed = true;
-			Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
+			Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
 		} else if (sanity > 20 && this.isRed) {
 			this.isRed = false;
 		}
 		
 		if(!this.isRed) {
-			Paranoia.getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.DESATURATION_SHADER, sanity));
+			Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.DESATURATION_SHADER, sanity));
 		}
 	}
 

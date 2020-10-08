@@ -24,6 +24,8 @@ import javax.annotation.Nullable;
 
 import org.apache.http.ParseException;
 
+import io.github.championash5357.paranoia.api.util.DamageSources;
+import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
@@ -39,8 +41,10 @@ public class PlayerSanity implements ISanity {
 	@Nullable
 	private final PlayerEntity player;
 	private boolean firstInteraction;
-	private int minSanity, maxSanity; //Should be effectively final
+	private int minSanity, maxSanity; // Should be effectively final
 	private int prevSanity, sanity, tempMinSanity, tempMaxSanity;
+	private int time, recoveryTime, attackTime; // Only used to keep track of tick information
+	private int threshold, recoveryThreshold, attackThreshold; // Thresholds on when to execute tick
 	private final Map<Integer, Set<ResourceLocation>> unloadedCallbacks = new HashMap<>();
 	private final Map<Integer, Set<SanityCallback>> loadedCallbacks = new HashMap<>();
 	private final List<ThreeConsumer<ServerPlayerEntity, Integer, Integer>> deferredCallbacks = new ArrayList<>();
@@ -117,7 +121,29 @@ public class PlayerSanity implements ISanity {
 	
 	@Override
 	public void tick() {
-		//TODO: Implement ticks
+		int lightLevel = this.player.world.isThundering() ? this.player.world.getNeighborAwareLightSubtracted(this.player.getPosition(), 10) : this.player.world.getLight(this.player.getPosition());
+		int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
+		this.recoveryThreshold = recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold) : -1;
+		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(this.player.getHealth(), 1, 20)); //TODO: Make more expansive later
+		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(Math.abs(this.threshold), Math.abs(threshold));
+		
+		if(this.attackThreshold != -1) this.attackTime++;
+		if(this.recoveryThreshold != -1 && this.maxSanity != this.tempMaxSanity) this.recoveryTime++;
+		else this.recoveryTime = 0;
+		this.time++;
+		
+		if(this.recoveryThreshold != -1 && this.recoveryTime >= this.recoveryThreshold) {
+			this.changeMaxSanity(1);
+			this.recoveryTime = 0;
+		}
+		if(this.time >= Math.abs(this.threshold)) {
+			this.changeSanity(this.threshold > 0 ? 1 : -1);
+			this.time = 0;
+		}
+		if(this.attackThreshold != -1 && this.attackTime >= this.attackThreshold) {
+			this.player.attackEntityFrom(DamageSources.PARANOIA, 1.0f);
+			this.attackTime = 0;
+		}
 	}
 
 	private void updateSanityInformation(int originalSanity, int newSanity) {
@@ -149,6 +175,9 @@ public class PlayerSanity implements ISanity {
 			}
 			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
 		}
+		int attackThreshold = Paranoia.getInstance().getSanityManager().getAttackTime(newSanity);
+		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, Paranoia.getInstance().getSanityManager().getAttackTime(newSanity)) : -1;
+		if(this.attackThreshold == -1) this.attackTime = 0;
 	}
 
 	private void setupInitialMaps() {
@@ -183,6 +212,12 @@ public class PlayerSanity implements ISanity {
 		nbt.putInt("tempMinSanity", this.tempMinSanity);
 		nbt.putInt("tempMaxSanity", this.tempMaxSanity);
 		nbt.putBoolean("firstInteraction", this.firstInteraction);
+		nbt.putInt("time", this.time);
+		nbt.putInt("recoveryTime", this.recoveryTime);
+		nbt.putInt("attackTime", this.attackTime);
+		nbt.putInt("threshold", this.threshold);
+		nbt.putInt("recoveryThreshold", this.recoveryThreshold);
+		nbt.putInt("attackThreshold", this.attackThreshold);
 		CompoundNBT unloadedCallbacks = new CompoundNBT();
 		this.unloadedCallbacks.forEach((startSanity, list) -> {
 			ListNBT locations = new ListNBT();
@@ -218,6 +253,12 @@ public class PlayerSanity implements ISanity {
 		this.tempMinSanity = nbt.getInt("tempMinSanity");
 		this.tempMaxSanity = nbt.getInt("tempMaxSanity");
 		this.firstInteraction = nbt.getBoolean("firstInteraction");
+		this.time = nbt.getInt("time");
+		this.recoveryTime = nbt.getInt("recoveryTime");
+		this.attackTime = nbt.getInt("attackTime");
+		this.threshold = nbt.getInt("threshold");
+		this.recoveryThreshold = nbt.getInt("recoveryThreshold");
+		this.attackThreshold = nbt.getInt("attackThreshold");
 		this.unloadedCallbacks.clear();
 		this.loadedCallbacks.clear();
 		Map<ResourceLocation, Function<ResourceLocation, SanityCallback>> registryMap = SanityCallbacks.getValidationMap();

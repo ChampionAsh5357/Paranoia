@@ -2,7 +2,7 @@ modLoader="javafml"
 loaderVersion="[34,)"
 
 license="LGPL-3.0-only"
-# issueTrackerURL=""
+issueTrackerURL="https://github.com/ChampionAsh5357/Paranoia/issues"
 
 [[mods]]
 modId="paranoia"

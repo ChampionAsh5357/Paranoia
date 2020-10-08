@@ -25,6 +25,7 @@ import io.github.championash5357.paranoia.common.init.CallbackRegistrar;
 import io.github.championash5357.paranoia.common.init.CapabilityRegistrar;
 import io.github.championash5357.paranoia.common.init.CommandRegistrar;
 import io.github.championash5357.paranoia.common.network.NetworkHandler;
+import io.github.championash5357.paranoia.common.sanity.SanityManager;
 import io.github.championash5357.paranoia.common.util.CapabilityProviderSerializable;
 import io.github.championash5357.paranoia.data.client.Localizations;
 import io.github.championash5357.paranoia.server.dedicated.DedicatedServerReference;
@@ -34,6 +35,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent.Phase;
@@ -55,9 +57,14 @@ public class Paranoia {
 	public static final String ID = "paranoia";
 	
 	public static final ISidedReference SIDED_SYSTEM = DistExecutor.safeRunForDist(() -> ClientReference::new, () -> DedicatedServerReference::new);
-	private static SimpleChannel network;
+	private static Paranoia instance;
+	private SimpleChannel network;
+	private final SanityManager sanityManager;
 	
 	public Paranoia() {
+		instance = this;
+		this.sanityManager = new SanityManager();
+		
 		final IEventBus mod = FMLJavaModLoadingContext.get().getModEventBus(),
 				forge = MinecraftForge.EVENT_BUS;
 		
@@ -66,13 +73,22 @@ public class Paranoia {
 		SIDED_SYSTEM.setup(mod, forge);
 		forge.addGenericListener(Entity.class, this::attachPlayerCaps);
 		forge.addListener(this::registerCommands);
+		forge.addListener(this::attachListeners);
 		forge.addListener(this::playerLoggedIn);
 		forge.addListener(this::tickPlayer);
 		forge.addListener(this::clonePlayer);
 	}
 	
-	public static final SimpleChannel getNetwork() {
-		return network;
+	public static final Paranoia getInstance() {
+		return instance;
+	}
+	
+	public final SimpleChannel getNetwork() {
+		return this.network;
+	}
+	
+	public final SanityManager getSanityManager() {
+		return this.sanityManager;
 	}
 	
 	private void data(final GatherDataEvent event) {
@@ -109,14 +125,19 @@ public class Paranoia {
 				event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(instance -> {
 					instance.deserializeNBT(original.serializeNBT());
 					instance.changeMaxSanity(-10);
+					instance.setSanity(instance.getMaxSanity());
 				});
 			});
 		}
 	}
 	
 	private void tickPlayer(final PlayerTickEvent event) {
-		if(event.side == LogicalSide.CLIENT || event.phase == Phase.START) return;
+		if(event.side == LogicalSide.CLIENT || event.phase == Phase.START || !event.player.isAlive()) return;
 		event.player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(ISanity::tick);
+	}
+	
+	private void attachListeners(final AddReloadListenerEvent event) {
+		event.addListener(this.sanityManager);
 	}
 	
 	private void addLanguageProviders(final DataGenerator gen) {
