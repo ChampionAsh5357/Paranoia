@@ -35,7 +35,7 @@ public class ClientReference implements ISidedReference {
 	}
 
 	private void client(final FMLClientSetupEvent event) {
-		//ClientRegistry.registerEntityShader(ClientPlayerEntity.class, new ResourceLocation(Paranoia.ID, "shaders/post/saturate_0.json"));
+		ClientHandler.setMinecraft(event.getMinecraftSupplier().get());
 	}
 	
 	private void overlayPre(final RenderGameOverlayEvent.Pre event) {

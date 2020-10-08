@@ -18,7 +18,9 @@
 package io.github.championash5357.paranoia.common.network;
 
 import io.github.championash5357.paranoia.common.Paranoia;
+import io.github.championash5357.paranoia.common.network.server.SHandleClientCallback;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkRegistry;
 import net.minecraftforge.fml.network.simple.SimpleChannel;
 
@@ -31,6 +33,12 @@ public class NetworkHandler {
 				.serverAcceptedVersions(version -> true)
 				.networkProtocolVersion(() -> Paranoia.ID + ":1")
 				.simpleChannel();
+		
+		channel.messageBuilder(SHandleClientCallback.class, ++id, NetworkDirection.PLAY_TO_CLIENT)
+		.encoder(SHandleClientCallback::encode)
+		.decoder(SHandleClientCallback::decode)
+		.consumer(SHandleClientCallback::handle)
+		.add();
 		
 		return channel;
 	}

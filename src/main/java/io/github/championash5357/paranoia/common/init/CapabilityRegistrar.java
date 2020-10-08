@@ -21,7 +21,7 @@ public class CapabilityRegistrar {
 
 			@Override
 			public void readNBT(Capability<ISanity> capability, ISanity instance, Direction side, INBT nbt) {
-				if(!(nbt instanceof CompoundNBT)) throw new IllegalArgumentException("INBT must be an instance of IntArrayNBT.");
+				if(!(nbt instanceof CompoundNBT)) throw new IllegalArgumentException("INBT must be an instance of CompoundNBT.");
 				instance.deserializeNBT((CompoundNBT) nbt);
 			}
 			

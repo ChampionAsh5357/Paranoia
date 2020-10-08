@@ -19,15 +19,25 @@ package io.github.championash5357.paranoia.api.sanity;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import net.minecraft.util.ResourceLocation;
 
+//TODO: Document
 public class SanityCallbacks {
 
-	private static final Map<ResourceLocation, Supplier<SanityCallback>> SANITY_CALLBACKS = new HashMap<>();
+	private static final Map<ResourceLocation, Function<ResourceLocation, SanityCallback>> SANITY_CALLBACKS = new HashMap<>();
+	
+	public static synchronized void registerCallback(ResourceLocation id, Function<ResourceLocation, SanityCallback> callbackSupplier) {
+		if(SANITY_CALLBACKS.get(id) != null) throw new IllegalArgumentException("The name " + id.toString() + " has been registered twice.");
+		SANITY_CALLBACKS.putIfAbsent(id, callbackSupplier);
+	}
 	
 	public static SanityCallback createCallback(ResourceLocation location) {
-		return SANITY_CALLBACKS.get(location).get();
+		return SANITY_CALLBACKS.get(location).apply(location);
+	}
+	
+	public static Map<ResourceLocation, Function<ResourceLocation, SanityCallback>> getValidationMap() {
+		return new HashMap<>(SANITY_CALLBACKS);
 	}
 }

@@ -17,16 +17,16 @@
 
 package io.github.championash5357.paranoia.api.sanity;
 
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 
 //TODO: Document
 public interface ICallbackHandler extends INBTSerializable<CompoundNBT> {
 
-	boolean start(PlayerEntity player);
-	boolean update(PlayerEntity player);
-	boolean stop(PlayerEntity player);
+	void start(ServerPlayerEntity player, int sanity);
+	void update(ServerPlayerEntity player, int sanity);
+	void stop(ServerPlayerEntity player, int sanity);
 	
 	default boolean restartOnReload() {
 		return false;

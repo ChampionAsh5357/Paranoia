@@ -17,6 +17,7 @@
 
 package io.github.championash5357.paranoia.api.sanity;
 
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 
@@ -24,12 +25,15 @@ import net.minecraftforge.common.util.INBTSerializable;
 public interface ISanity extends INBTSerializable<CompoundNBT> {
 	
 	int getSanity();
+	int getMaxSanity();
 	
 	void setSanity(int sanity);
 	void changeSanity(int amount);
-	
 	void setMaxSanity(int maxSanity);
 	void changeMaxSanity(int amount);
 	void setMinSanity(int minSanity);
 	void changeMinSanity(int amount);
+	
+	void executeLoginCallbacks(ServerPlayerEntity player);
+	void tick();
 }
