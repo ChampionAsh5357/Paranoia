@@ -33,6 +33,7 @@ import net.minecraft.nbt.ListNBT;
 import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fml.util.ThreeConsumer;
 
 //TODO: Document
@@ -79,7 +80,7 @@ public class PlayerSanity implements ISanity {
 	public int getSanity() {
 		return this.sanity;
 	}
-	
+
 	@Override
 	public int getMaxSanity() {
 		return this.tempMaxSanity;
@@ -118,32 +119,44 @@ public class PlayerSanity implements ISanity {
 	public void changeMinSanity(int amount) {
 		this.setMinSanity(this.minSanity + amount);
 	}
-	
+
 	@Override
 	public void tick() {
 		int lightLevel = this.player.world.isThundering() ? this.player.world.getNeighborAwareLightSubtracted(this.player.getPosition(), 10) : this.player.world.getLight(this.player.getPosition());
-		int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
-		this.recoveryThreshold = recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold) : -1;
+		if(this.maxSanity != this.tempMaxSanity) {
+			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
+			this.recoveryThreshold = recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold) : -1;
+		}
 		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(this.player.getHealth(), 1, 20)); //TODO: Make more expansive later
-		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(Math.abs(this.threshold), Math.abs(threshold));
-		
+		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold));
+
 		if(this.attackThreshold != -1) this.attackTime++;
 		if(this.recoveryThreshold != -1 && this.maxSanity != this.tempMaxSanity) this.recoveryTime++;
 		else this.recoveryTime = 0;
 		this.time++;
-		
+
 		if(this.recoveryThreshold != -1 && this.recoveryTime >= this.recoveryThreshold) {
 			this.changeMaxSanity(1);
 			this.recoveryTime = 0;
+			this.recoveryThreshold = -1;
 		}
 		if(this.time >= Math.abs(this.threshold)) {
 			this.changeSanity(this.threshold > 0 ? 1 : -1);
 			this.time = 0;
+			this.threshold = -1;
 		}
 		if(this.attackThreshold != -1 && this.attackTime >= this.attackThreshold) {
 			this.player.attackEntityFrom(DamageSources.PARANOIA, 1.0f);
 			this.attackTime = 0;
+			this.attackThreshold = - 1;
+			setAttackThreshold();
 		}
+	}
+	
+	private void setAttackThreshold() {
+		int attackThreshold = Paranoia.getInstance().getSanityManager().getAttackTime(this.sanity);
+		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, Paranoia.getInstance().getSanityManager().getAttackTime(this.sanity)) : -1;
+		if(this.attackThreshold == -1) this.attackTime = 0;
 	}
 
 	private void updateSanityInformation(int originalSanity, int newSanity) {
@@ -175,9 +188,7 @@ public class PlayerSanity implements ISanity {
 			}
 			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
 		}
-		int attackThreshold = Paranoia.getInstance().getSanityManager().getAttackTime(newSanity);
-		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, Paranoia.getInstance().getSanityManager().getAttackTime(newSanity)) : -1;
-		if(this.attackThreshold == -1) this.attackTime = 0;
+		setAttackThreshold();
 	}
 
 	private void setupInitialMaps() {
@@ -195,7 +206,7 @@ public class PlayerSanity implements ISanity {
 		});
 		this.firstInteraction = true;
 	}
-	
+
 	@Override
 	public void executeLoginCallbacks(ServerPlayerEntity player) {
 		this.deferredCallbacks.forEach(consumer -> consumer.accept(player, this.sanity, this.prevSanity));
@@ -229,14 +240,10 @@ public class PlayerSanity implements ISanity {
 		this.loadedCallbacks.forEach((stopSanity, list) -> {
 			ListNBT locations = new ListNBT();
 			list.forEach(callback -> {
-				if(callback.getHandler().hasData()) {
-					CompoundNBT callbackData = new CompoundNBT();
-					callbackData.putString("id", callback.getId().toString());
-					callbackData.put("data", callback.getHandler().serializeNBT());
-					locations.add(callbackData);
-				} else {
-					locations.add(StringNBT.valueOf(callback.getId().toString()));
-				}
+				CompoundNBT callbackData = new CompoundNBT();
+				callbackData.putString("id", callback.getId().toString());
+				if(callback.getHandler().hasData()) callbackData.put("data", callback.getHandler().serializeNBT());
+				locations.add(callbackData);
 			});
 			loadedCallbacks.put(String.valueOf(stopSanity), locations);
 		});
@@ -265,7 +272,7 @@ public class PlayerSanity implements ISanity {
 		CompoundNBT unloadedCallbacks = nbt.getCompound("unloadedCallbacks");
 		unloadedCallbacks.keySet().forEach(startSanity -> {
 			Set<ResourceLocation> locations = new HashSet<>();
-			ListNBT list = unloadedCallbacks.getList(startSanity, 9);
+			ListNBT list = unloadedCallbacks.getList(startSanity, Constants.NBT.TAG_STRING);
 			list.forEach(inbt -> {
 				if (inbt instanceof StringNBT) {
 					ResourceLocation location = new ResourceLocation(((StringNBT) inbt).getString());
@@ -280,15 +287,11 @@ public class PlayerSanity implements ISanity {
 		CompoundNBT loadedCallbacks = nbt.getCompound("loadedCallbacks");
 		loadedCallbacks.keySet().forEach(stopSanity -> {
 			Set<SanityCallback> callbacks = new HashSet<>();
-			ListNBT list = unloadedCallbacks.getList(stopSanity, 9);
+			ListNBT list = loadedCallbacks.getList(stopSanity, Constants.NBT.TAG_COMPOUND);
 			list.forEach(inbt -> {
-				if (inbt instanceof StringNBT) {
-					ResourceLocation location = new ResourceLocation(((StringNBT) inbt).getString());
-					callbacks.add(SanityCallbacks.createCallback(location));
-					registryMap.remove(location);
-				} else if (inbt instanceof CompoundNBT) {
+				if (inbt instanceof CompoundNBT) {
 					SanityCallback callback = SanityCallbacks.createCallback(new ResourceLocation(((CompoundNBT) inbt).getString("id")));
-					callback.getHandler().deserializeNBT(((CompoundNBT) inbt).getCompound("data"));
+					if(((CompoundNBT) inbt).contains("data")) callback.getHandler().deserializeNBT(((CompoundNBT) inbt).getCompound("data"));
 					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().start(player, sanity, prevSanity));
 					callbacks.add(callback);
 					registryMap.remove(callback.getId());
