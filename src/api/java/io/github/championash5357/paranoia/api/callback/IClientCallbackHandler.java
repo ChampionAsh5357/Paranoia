@@ -15,15 +15,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.client;
+package io.github.championash5357.paranoia.api.callback;
 
-import java.util.List;
+import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks.CallbackType;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.nbt.INBT;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.common.util.INBTSerializable;
 
-import io.github.championash5357.paranoia.api.client.ClientCallbackRegistry;
-
-public class ClientHandler {
+//TODO: Document
+public interface IClientCallbackHandler<T extends INBT> extends INBTSerializable<T> {
 	
-	public static void handle(int sanity, List<String> calls) {
-		calls.forEach(str -> ClientCallbackRegistry.handleCallback(str, sanity));
-	}
+	boolean test(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase);
+	
+	ResourceLocation getId();
+	
+	CallbackType getType();
 }

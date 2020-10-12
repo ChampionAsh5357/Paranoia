@@ -17,48 +17,48 @@
 
 package io.github.championash5357.paranoia.common.callback;
 
-import java.util.Random;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import io.github.championash5357.paranoia.api.sanity.ICallbackHandler;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import io.github.championash5357.paranoia.api.callback.ICallback;
+import io.github.championash5357.paranoia.api.callback.IClientCallbackHandler;
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks.CallbackType;
 import io.github.championash5357.paranoia.common.Paranoia;
 import io.github.championash5357.paranoia.common.network.server.SHandleClientCallback;
-import io.github.championash5357.paranoia.common.network.server.SHandleClientCallback.Type;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.fml.network.PacketDistributor;
 
-public class ClientCallback implements ICallbackHandler {
-
-	private static final Random RANDOM = new Random();
-	private boolean isRed;
+//TODO: Expand on later
+public class ClientCallback implements ICallback {
+	
+	private static final Logger LOGGER = LogManager.getLogger();
+	@SuppressWarnings("rawtypes")
+	private final Map<String, IClientCallbackHandler> handlers;
+	
+	public ClientCallback() {
+		this.handlers = SanityCallbacks.constructClientCallbacks();
+	}
 	
 	@Override
-	public void start(ServerPlayerEntity player, int sanity, int prevSanity) {
-		if(this.isRed) Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
-		this.handle(player, sanity, prevSanity);
-	}
-
-	@Override
-	public void update(ServerPlayerEntity player, int sanity, int prevSanity) {
-		this.handle(player, sanity, prevSanity);
-	}
-
-	@Override
-	public void stop(ServerPlayerEntity player, int sanity, int prevSanity) {
-		Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.STOP, sanity));
-	}
-	
-	private void handle(ServerPlayerEntity player, int sanity, int prevSanity) {
-		if (sanity == 20 && prevSanity > sanity && !this.isRed && RANDOM.nextInt(100) < 5) {
-			this.isRed = true;
-			Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.RED_SHADER, sanity));
-		} else if (sanity > 20 && this.isRed) {
-			this.isRed = false;
-		}
-		
-		if(!this.isRed) {
-			Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(Type.DESATURATION_SHADER, sanity));
-		}
+	public void call(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
+		List<String> calls = new ArrayList<>();
+		List<CallbackType> singletons = new ArrayList<>();
+		this.handlers.forEach((str, callback) -> {
+			if(callback.test(player, sanity, prevSanity, phase)) {
+				if(singletons.contains(callback.getType()));
+				else {
+					if(callback.getType().isSingle()) singletons.add(callback.getType());
+					calls.add(callback.getId().toString());
+				}
+			}
+		});
+		if(!calls.isEmpty()) Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SHandleClientCallback(sanity, calls));
 	}
 
 	@Override
@@ -71,15 +71,19 @@ public class ClientCallback implements ICallbackHandler {
 		return true;
 	}
 	
+	@SuppressWarnings("unchecked")
 	@Override
 	public void deserializeNBT(CompoundNBT nbt) {
-		this.isRed = nbt.getBoolean("isRed");
+		nbt.keySet().forEach(str -> {
+			if(this.handlers.containsKey(str)) this.handlers.get(str).deserializeNBT(nbt.get(str));
+			else LOGGER.warn("Callback {} no longer exists. Will skip!", str);
+		});
 	}
 	
 	@Override
 	public CompoundNBT serializeNBT() {
 		CompoundNBT nbt = new CompoundNBT();
-		nbt.putBoolean("isRed", this.isRed);
+		this.handlers.forEach((str, callback) -> nbt.put(str, callback.serializeNBT()));
 		return nbt;
 	}
 }

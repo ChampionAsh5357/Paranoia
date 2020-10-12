@@ -40,6 +40,7 @@ import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.PlayerTickEvent;
+import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -77,6 +78,7 @@ public class Paranoia {
 		forge.addListener(this::playerLoggedIn);
 		forge.addListener(this::tickPlayer);
 		forge.addListener(this::clonePlayer);
+		forge.addListener(this::damage);
 	}
 	
 	public static final Paranoia getInstance() {
@@ -113,6 +115,11 @@ public class Paranoia {
 		CommandRegistrar.register(event.getDispatcher());
 	}
 	
+	private void damage(final LivingDamageEvent event) {
+		if(event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity && event.getSource().getTrueSource() != null)
+			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getSanityLoss(event.getSource().getTrueSource().getType())));
+	}
+	
 	private void playerLoggedIn(final PlayerLoggedInEvent event) {
 		if(event.getPlayer().isServerWorld()) {
 			event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.executeLoginCallbacks((ServerPlayerEntity) event.getPlayer()));
@@ -128,12 +135,18 @@ public class Paranoia {
 					instance.setSanity(instance.getMaxSanity());
 				});
 			});
+		} else {
+			event.getOriginal().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(original -> {
+				event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(instance -> {
+					instance.deserializeNBT(original.serializeNBT());
+				});
+			});
 		}
 	}
 	
 	private void tickPlayer(final PlayerTickEvent event) {
 		if(event.side == LogicalSide.CLIENT || event.phase == Phase.START || !event.player.isAlive()) return;
-		event.player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(ISanity::tick);
+		if(((ServerPlayerEntity) event.player).interactionManager.survivalOrAdventure()) event.player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(ISanity::tick);
 	}
 	
 	private void attachListeners(final AddReloadListenerEvent event) {

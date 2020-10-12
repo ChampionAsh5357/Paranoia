@@ -15,18 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.api.sanity;
+package io.github.championash5357.paranoia.api.callback;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 
 //TODO: Document
-public interface ICallbackHandler extends INBTSerializable<CompoundNBT> {
+@FunctionalInterface
+public interface ICallback extends INBTSerializable<CompoundNBT> {
 
-	void start(ServerPlayerEntity player, int sanity, int prevSanity);
-	void update(ServerPlayerEntity player, int sanity, int prevSanity);
-	void stop(ServerPlayerEntity player, int sanity, int prevSanity);
+	void call(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase);
 	
 	default boolean restartOnReload() {
 		return false;
@@ -41,4 +40,10 @@ public interface ICallbackHandler extends INBTSerializable<CompoundNBT> {
 	
 	@Override
 	default CompoundNBT serializeNBT() { return null; }
+	
+	public static enum Phase {
+		START,
+		UPDATE,
+		STOP;
+	}
 }

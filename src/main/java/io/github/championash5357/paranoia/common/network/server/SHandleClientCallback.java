@@ -17,6 +17,8 @@
 
 package io.github.championash5357.paranoia.common.network.server;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import io.github.championash5357.paranoia.client.ClientHandler;
@@ -29,32 +31,31 @@ import net.minecraftforge.fml.network.NetworkEvent.Context;
 public class SHandleClientCallback implements IMessage {
 
 	private final int sanity;
-	private final byte type;
+	private final List<String> calls;
 	
-	public SHandleClientCallback(byte type, int sanity) {
+	public SHandleClientCallback(int sanity, List<String> calls) {
 		this.sanity = sanity;
-		this.type = type;
+		this.calls = calls;
 	}
 	
 	@Override
 	public void encode(PacketBuffer buffer) {
-		buffer.writeByte(this.type);
 		buffer.writeInt(this.sanity);
+		buffer.writeInt(this.calls.size());
+		this.calls.forEach(buffer::writeString);
 	}
 
 	public static SHandleClientCallback decode(PacketBuffer buffer) {
-		return new SHandleClientCallback(buffer.readByte(), buffer.readInt());
+		int sanity = buffer.readInt();
+		int size = buffer.readInt();
+		List<String> calls = new ArrayList<>(size);
+		for(int i = 0; i < size; ++i) calls.add(buffer.readString());
+		return new SHandleClientCallback(sanity, calls);
 	}
 	
 	@Override
 	public boolean handle(Supplier<Context> ctx) {
-		ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHandler.handle(this.type, this.sanity)));
+		ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHandler.handle(this.sanity, this.calls)));
 		return true;
-	}
-	
-	public static class Type {
-		public static final byte STOP = 0b0;
-		public static final byte DESATURATION_SHADER = 0b1;
-		public static final byte RED_SHADER = 0b10;
 	}
 }

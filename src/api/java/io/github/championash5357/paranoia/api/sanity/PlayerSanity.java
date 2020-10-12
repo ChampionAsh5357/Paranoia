@@ -24,6 +24,9 @@ import javax.annotation.Nullable;
 
 import org.apache.http.ParseException;
 
+import io.github.championash5357.paranoia.api.callback.SanityCallback;
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.util.DamageSources;
 import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.player.PlayerEntity;
@@ -163,13 +166,13 @@ public class PlayerSanity implements ISanity {
 		if(!this.firstInteraction) this.setupInitialMaps();
 		if(originalSanity == newSanity || this.player == null || this.player.world.isRemote) return;
 		if(originalSanity > newSanity) {
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.UPDATE));
 			for(int i = originalSanity - 1; i >= newSanity; --i) {
 				@Nullable Set<ResourceLocation> unloaded = this.unloadedCallbacks.get(i);
 				if(unloaded != null) {
 					unloaded.forEach(location -> {
 						SanityCallback callback = SanityCallbacks.createCallback(location);
-						callback.getHandler().start((ServerPlayerEntity) this.player, newSanity, originalSanity);
+						callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.START);
 						this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 					});
 					this.unloadedCallbacks.remove(i);
@@ -180,13 +183,13 @@ public class PlayerSanity implements ISanity {
 				@Nullable Set<SanityCallback> loaded = this.loadedCallbacks.get(i);
 				if(loaded != null) {
 					loaded.forEach(callback -> {
-						callback.getHandler().stop((ServerPlayerEntity) this.player, newSanity, originalSanity);
+						callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.STOP);
 						this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());
 					});
 					this.loadedCallbacks.remove(i);
 				}
 			}
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().update((ServerPlayerEntity) this.player, newSanity, originalSanity));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.UPDATE));
 		}
 		setAttackThreshold();
 	}
@@ -292,7 +295,7 @@ public class PlayerSanity implements ISanity {
 				if (inbt instanceof CompoundNBT) {
 					SanityCallback callback = SanityCallbacks.createCallback(new ResourceLocation(((CompoundNBT) inbt).getString("id")));
 					if(((CompoundNBT) inbt).contains("data")) callback.getHandler().deserializeNBT(((CompoundNBT) inbt).getCompound("data"));
-					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().start(player, sanity, prevSanity));
+					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().call(player, sanity, prevSanity, Phase.START));
 					callbacks.add(callback);
 					registryMap.remove(callback.getId());
 				} else {
@@ -304,7 +307,7 @@ public class PlayerSanity implements ISanity {
 		registryMap.forEach((id, callbackSupplier) -> {
 			SanityCallback callback = callbackSupplier.apply(id);
 			if(this.sanity <= callback.getStartSanity()) {
-				deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().start(player, sanity, prevSanity));
+				deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().call(player, sanity, prevSanity, Phase.START));
 				this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 			} else {
 				this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());

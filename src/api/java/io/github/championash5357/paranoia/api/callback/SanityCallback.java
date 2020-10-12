@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.api.sanity;
+package io.github.championash5357.paranoia.api.callback;
 
 import net.minecraft.util.ResourceLocation;
 
@@ -24,9 +24,9 @@ public class SanityCallback {
 
 	private final ResourceLocation id;
 	private final int startSanity, stopSanity;
-	private final ICallbackHandler handler;
+	private final ICallback handler;
 	
-	public SanityCallback(ResourceLocation id, int startSanity, int stopSanity, ICallbackHandler handler) {
+	public SanityCallback(ResourceLocation id, int startSanity, int stopSanity, ICallback handler) {
 		this.id = id;
 		this.startSanity = startSanity;
 		this.stopSanity = stopSanity;
@@ -41,7 +41,7 @@ public class SanityCallback {
 		return stopSanity;
 	}
 	
-	public ICallbackHandler getHandler() {
+	public ICallback getHandler() {
 		return handler;
 	}
 	

@@ -15,15 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.client;
+package io.github.championash5357.paranoia.api.client;
 
-import java.util.List;
+@FunctionalInterface
+public interface IClientCallback {
 
-import io.github.championash5357.paranoia.api.client.ClientCallbackRegistry;
-
-public class ClientHandler {
-	
-	public static void handle(int sanity, List<String> calls) {
-		calls.forEach(str -> ClientCallbackRegistry.handleCallback(str, sanity));
-	}
+	void handle(int sanity);
 }
