@@ -43,6 +43,8 @@ import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.event.world.SleepFinishedTimeEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.LogicalSide;
@@ -56,19 +58,19 @@ import net.minecraftforge.fml.network.simple.SimpleChannel;
 public class Paranoia {
 
 	public static final String ID = "paranoia";
-	
+
 	public static final ISidedReference SIDED_SYSTEM = DistExecutor.safeRunForDist(() -> ClientReference::new, () -> DedicatedServerReference::new);
 	private static Paranoia instance;
 	private SimpleChannel network;
 	private final SanityManager sanityManager;
-	
+
 	public Paranoia() {
 		instance = this;
 		this.sanityManager = new SanityManager();
-		
+
 		final IEventBus mod = FMLJavaModLoadingContext.get().getModEventBus(),
 				forge = MinecraftForge.EVENT_BUS;
-		
+
 		mod.addListener(this::setup);
 		mod.addListener(this::data);
 		SIDED_SYSTEM.setup(mod, forge);
@@ -78,81 +80,87 @@ public class Paranoia {
 		forge.addListener(this::playerLoggedIn);
 		forge.addListener(this::tickPlayer);
 		forge.addListener(this::clonePlayer);
-		forge.addListener(this::damage);
+		forge.addListener(EventPriority.LOWEST, this::damage);
+		forge.addListener(this::wake);
 	}
-	
+
 	public static final Paranoia getInstance() {
 		return instance;
 	}
-	
+
 	public final SimpleChannel getNetwork() {
 		return this.network;
 	}
-	
+
 	public final SanityManager getSanityManager() {
 		return this.sanityManager;
 	}
-	
+
 	private void data(final GatherDataEvent event) {
 		DataGenerator gen = event.getGenerator();
 		if(event.includeClient()) {
 			addLanguageProviders(gen);
 		}
 	}
-	
+
 	private void setup(final FMLCommonSetupEvent event) {
 		network = NetworkHandler.createNetwork();
 		CapabilityRegistrar.register();
 		CallbackRegistrar.register();
 	}
-	
+
 	private void attachPlayerCaps(final AttachCapabilitiesEvent<Entity> event) {
 		if(event.getObject() instanceof PlayerEntity)
 			event.addCapability(new ResourceLocation(ID, "sanity"), new CapabilityProviderSerializable<>(CapabilityInstances.SANITY_CAPABILITY, new PlayerSanity((PlayerEntity) event.getObject()), null).attachListeners(event::addListener));
 	}
-	
+
 	private void registerCommands(final RegisterCommandsEvent event) {
 		CommandRegistrar.register(event.getDispatcher());
 	}
-	
+
 	private void damage(final LivingDamageEvent event) {
-		if(event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity && event.getSource().getTrueSource() != null)
+		if(!event.isCanceled() && event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity && event.getSource().getTrueSource() != null)
 			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getSanityLoss(event.getSource().getTrueSource().getType())));
 	}
-	
+
 	private void playerLoggedIn(final PlayerLoggedInEvent event) {
 		if(event.getPlayer().isServerWorld()) {
 			event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.executeLoginCallbacks((ServerPlayerEntity) event.getPlayer()));
 		}
 	}
-	
+
 	private void clonePlayer(final PlayerEvent.Clone event) {
-		if(event.isWasDeath()) {
-			event.getOriginal().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(original -> {
-				event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(instance -> {
-					instance.deserializeNBT(original.serializeNBT());
-					instance.changeMaxSanity(-10);
-					instance.setSanity(instance.getMaxSanity());
-				});
+		event.getOriginal().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(original -> {
+			event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(instance -> {
+				instance.deserializeNBT(original.serializeNBT());
+				if(event.isWasDeath()) {
+					instance.changeMaxSanity(-10, true);
+					instance.setSanity(instance.getMaxSanity(), true);
+				}
 			});
-		} else {
-			event.getOriginal().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(original -> {
-				event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(instance -> {
-					instance.deserializeNBT(original.serializeNBT());
+		});
+	}
+	
+	private void wake(final SleepFinishedTimeEvent event) {
+		if(!event.getWorld().isRemote()) {
+			event.getWorld().getPlayers().forEach(player -> {
+				player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> {
+					sanity.changeMaxSanity(5);
+					sanity.changeSanity(15);
 				});
 			});
 		}
 	}
-	
+
 	private void tickPlayer(final PlayerTickEvent event) {
 		if(event.side == LogicalSide.CLIENT || event.phase == Phase.START || !event.player.isAlive()) return;
-		if(((ServerPlayerEntity) event.player).interactionManager.survivalOrAdventure()) event.player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(ISanity::tick);
+		event.player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(ISanity::tick);
 	}
-	
+
 	private void attachListeners(final AddReloadListenerEvent event) {
 		event.addListener(this.sanityManager);
 	}
-	
+
 	private void addLanguageProviders(final DataGenerator gen) {
 		for(String locale : new String[] {"en_us"}) gen.addProvider(new Localizations(gen, locale));
 	}

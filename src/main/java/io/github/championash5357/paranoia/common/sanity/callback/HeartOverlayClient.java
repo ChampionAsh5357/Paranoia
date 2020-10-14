@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.callback;
+package io.github.championash5357.paranoia.common.sanity.callback;
 
 import io.github.championash5357.paranoia.api.callback.HandlerClient;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;

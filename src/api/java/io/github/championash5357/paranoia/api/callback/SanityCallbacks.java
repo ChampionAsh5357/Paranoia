@@ -17,9 +17,7 @@
 
 package io.github.championash5357.paranoia.api.callback;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -41,6 +39,7 @@ public class SanityCallbacks {
 	private static final Map<ResourceLocation, Function<ResourceLocation, SanityCallback>> SANITY_CALLBACKS = new HashMap<>();
 	private static final Map<ResourceLocation, Function<ResourceLocation, IClientCallbackHandler<?>>> CLIENT_CALLBACK_HANDLERS = new LinkedHashMap<>();
 	private static final Map<Attribute, Pair<AttributeModifier, Function<Integer, Double>>> ATTRIBUTES = new HashMap<>();
+	private static final Map<Integer, List<ITeleporterCallback>> TELEPORTS = new HashMap<>();
 	
 	public static synchronized void registerCallback(ResourceLocation id, Function<ResourceLocation, SanityCallback> callbackSupplier) {
 		if(SANITY_CALLBACKS.get(id) != null) throw new IllegalArgumentException("The name " + id.toString() + " has been registered twice.");
@@ -70,6 +69,14 @@ public class SanityCallbacks {
 	
 	public static Map<Attribute, Pair<AttributeModifier, Function<Integer, Double>>> constructAttributeCallbacks() {
 		return ImmutableMap.copyOf(ATTRIBUTES);
+	}
+	
+	public static synchronized void registerTeleporterCallback(int sanity, ITeleporterCallback callback) {
+		TELEPORTS.computeIfAbsent(sanity, a -> new ArrayList<>()).add(callback);
+	}
+	
+	public static Map<Integer, List<ITeleporterCallback>> getTeleporters() {
+		return ImmutableMap.copyOf(TELEPORTS);
 	}
 	
 	public static class CallbackType {

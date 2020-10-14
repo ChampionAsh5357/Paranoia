@@ -25,6 +25,7 @@ public class LocalizationStrings {
 	
 	public static final String COMMAND_SANITY_SANITY = construct(COMMAND, "sanity.sanity");
 	public static final String COMMAND_SANITY_MAX_SANITY = construct(COMMAND, "sanity.max_sanity");
+	public static final String COMMAND_SANITY_PLAYER = construct(COMMAND, "sanity.player");
 	
 	private static final String construct(String type, String value) {
 		return type + "." + Paranoia.ID + "." + value;

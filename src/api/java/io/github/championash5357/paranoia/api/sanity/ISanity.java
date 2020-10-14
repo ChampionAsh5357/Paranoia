@@ -27,12 +27,19 @@ public interface ISanity extends INBTSerializable<CompoundNBT> {
 	int getSanity();
 	int getMaxSanity();
 	
-	void setSanity(int sanity);
-	void changeSanity(int amount);
-	void setMaxSanity(int maxSanity);
-	void changeMaxSanity(int amount);
-	void setMinSanity(int minSanity);
-	void changeMinSanity(int amount);
+	default void setSanity(int sanity) { this.setSanity(sanity, false); }
+	default void changeSanity(int amount) { this.changeSanity(amount, false); }
+	default void setMaxSanity(int maxSanity) { this.setMaxSanity(maxSanity, false); }
+	default void changeMaxSanity(int amount) { this.changeMaxSanity(amount, false); }
+	default void setMinSanity(int minSanity) { this.setMinSanity(minSanity, false); }
+	default void changeMinSanity(int amount) { this.changeMinSanity(amount, false); }
+	
+	void setSanity(int sanity, boolean overrideChecks);
+	void changeSanity(int amount, boolean overrideChecks);
+	void setMaxSanity(int maxSanity, boolean overrideChecks);
+	void changeMaxSanity(int amount, boolean overrideChecks);
+	void setMinSanity(int minSanity, boolean overrideChecks);
+	void changeMinSanity(int amount, boolean overrideChecks);
 	
 	void executeLoginCallbacks(ServerPlayerEntity player);
 	void tick();

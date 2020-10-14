@@ -1,5 +1,6 @@
 {
   "command.paranoia.sanity.max_sanity": "Max Sanity",
+  "command.paranoia.sanity.player": "Player",
   "command.paranoia.sanity.sanity": "Sanity",
   "death.attack.paranoia": "%1$s went insane",
   "death.attack.paranoia.player": "%1$s was too paranoid of %2$s"

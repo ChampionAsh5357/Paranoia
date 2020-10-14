@@ -15,9 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.callback;
-
-import java.util.Random;
+package io.github.championash5357.paranoia.common.sanity.callback;
 
 import io.github.championash5357.paranoia.api.callback.HandlerClient;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
@@ -26,41 +24,34 @@ import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 
-public class ShaderClient extends HandlerClient {
+public class MissingHeartClient extends HandlerClient {
 
-	protected static final byte RED = 0b10;
-	private static final Random RANDOM = new Random();
-	public static final ResourceLocation SHADER = new ResourceLocation(Paranoia.ID, "shader");
-	public static final ResourceLocation RED_SHADER = new ResourceLocation(Paranoia.ID, "red_shader");
+	public static final ResourceLocation MISSING_HEART = new ResourceLocation(Paranoia.ID, "missing_heart");
 	
-	public ShaderClient(ResourceLocation id) {
+	public MissingHeartClient(ResourceLocation id) {
 		super(id);
 	}
-	
+
 	@Override
 	public boolean test(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
 		if(phase == Phase.STOP) {
 			this.setStatus(STOP);
 			return true;
-		} else if(phase == Phase.START && this.getStatus() == RED) return true;
+		} else if(phase == Phase.START && this.getStatus() == NORMAL) return true;
 		else {
-			if(sanity <= 20 && prevSanity > 20 && this.getStatus() != RED && RANDOM.nextInt(100) < 5) {
-				this.setStatus(RED);
+			if(sanity <= 20 && prevSanity > 20) {
+				this.setStatus(NORMAL);
 				return true;
-			} else if(sanity > 20 && this.getStatus() == RED) this.setStatus(NORMAL);
-			if(this.getStatus() != RED) return true;
-			else return false;
+			} else if(sanity > 30 && this.getStatus() == NORMAL) {
+				this.setStatus(STOP);
+				return true;
+			} else return false;
 		}
 	}
 
 	@Override
-	protected ResourceLocation getId(byte status) {
-		if(status == RED) return RED_SHADER;
-		return super.getId(status);
+	public CallbackType getType() {
+		return CallbackType.OTHER;
 	}
 
-	@Override
-	public CallbackType getType() {
-		return CallbackType.SHADER;
-	}
 }

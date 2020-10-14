@@ -37,6 +37,7 @@ public class Localizations extends LanguageProvider {
 		case "en_us":
 			add(LocalizationStrings.COMMAND_SANITY_SANITY, "Sanity");
 			add(LocalizationStrings.COMMAND_SANITY_MAX_SANITY, "Max Sanity");
+			add(LocalizationStrings.COMMAND_SANITY_PLAYER, "Player");
 			add(DamageSources.PARANOIA, "%1$s went insane", "%1$s was too paranoid of %2$s");
 			break;
 		default:

@@ -17,22 +17,31 @@
 
 package io.github.championash5357.paranoia.common.init;
 
+import java.util.Random;
 import java.util.UUID;
 
+import io.github.championash5357.paranoia.api.callback.ITeleporterCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
 import io.github.championash5357.paranoia.common.Paranoia;
-import io.github.championash5357.paranoia.common.callback.*;
+import io.github.championash5357.paranoia.common.sanity.callback.*;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.gen.Heightmap.Type;
 import net.minecraftforge.common.ForgeMod;
 
 public class CallbackRegistrar {
 
+	private static final Random RANDOM = new Random();
+
 	public static void register() {
 		SanityCallbacks.registerCallback(new ResourceLocation(Paranoia.ID, "client_displays"), id -> new SanityCallback(id, 99, 100, new ClientCallback()));
 		SanityCallbacks.registerCallback(new ResourceLocation(Paranoia.ID, "attributes"), id -> new SanityCallback(id, 49, 50, new AttributeCallback()));
+		SanityCallbacks.registerCallback(new ResourceLocation(Paranoia.ID, "teleporters"), id -> new SanityCallback(id, 30, 31, new TeleportCallback()));
 		SanityCallbacks.registerClientCallback(ShaderClient.SHADER, ShaderClient::new);
 		SanityCallbacks.registerClientCallback(HeartOverlayClient.HEART_OVERLAY, HeartOverlayClient::new);
 		SanityCallbacks.registerClientCallback(MissingHeartClient.MISSING_HEART, MissingHeartClient::new);
@@ -69,5 +78,22 @@ public class CallbackRegistrar {
 			else if(sanity < 40) return 0.75;
 			else return 0.0;
 		});
+		SanityCallbacks.registerTeleporterCallback(30, (player) -> {
+			if(RANDOM.nextInt(100) < 5) teleportPlayer(player);
+		});
+		SanityCallbacks.registerTeleporterCallback(20, (player) -> {
+			if(RANDOM.nextInt(100) < 25) teleportPlayer(player);
+		});
+		SanityCallbacks.registerTeleporterCallback(10, (player) -> {
+			if(RANDOM.nextInt(100) < 75) teleportPlayer(player);
+		});
+	}
+	
+	private static void teleportPlayer(ServerPlayerEntity player) {
+		if(player.world == null) throw new IllegalStateException("The world is not registered!");
+		int x = (int) (player.getPosX() + (RANDOM.nextDouble() - 0.5) * 64.0),
+				z = (int) (player.getPosZ() + (RANDOM.nextDouble() - 0.5) * 64.0);
+		int y = player.world.getHeight(Type.MOTION_BLOCKING, x, z);
+		if(World.isValid(new BlockPos(x, y, z))) ITeleporterCallback.teleportTo(player, x, y, z);
 	}
 }

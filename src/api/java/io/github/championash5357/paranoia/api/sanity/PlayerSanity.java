@@ -90,47 +90,50 @@ public class PlayerSanity implements ISanity {
 	}
 
 	@Override
-	public void setSanity(int sanity) {
+	public void setSanity(int sanity, boolean overrideChecks) {
+		if(!overrideChecks) if(player == null || player.world.isRemote || !((ServerPlayerEntity) player).interactionManager.survivalOrAdventure()) return;
 		this.prevSanity = this.sanity;
 		this.sanity = MathHelper.clamp(sanity, this.minSanity, this.tempMaxSanity);
-		updateSanityInformation(this.prevSanity, this.sanity);
+		this.updateSanityInformation(this.prevSanity, this.sanity);
 	}
 
 	@Override
-	public void changeSanity(int amount) {
-		this.setSanity(this.sanity + amount);
+	public void changeSanity(int amount, boolean overrideChecks) {
+		this.setSanity(this.sanity + amount, overrideChecks);
 	}
 
 	@Override
-	public void setMaxSanity(int maxSanity) {
+	public void setMaxSanity(int maxSanity, boolean overrideChecks) {
+		if(!overrideChecks) if(player == null || player.world.isRemote || !((ServerPlayerEntity) player).interactionManager.survivalOrAdventure()) return;
 		this.tempMaxSanity = MathHelper.clamp(maxSanity, this.tempMinSanity, this.maxSanity);
-		this.setSanity(this.sanity);
+		this.setSanity(this.sanity, overrideChecks);
 	}
 
 	@Override
-	public void changeMaxSanity(int amount) {
-		this.setMaxSanity(this.tempMaxSanity + amount);
+	public void changeMaxSanity(int amount, boolean overrideChecks) {
+		this.setMaxSanity(this.tempMaxSanity + amount, overrideChecks);
 	}
 
 	@Override
-	public void setMinSanity(int minSanity) {
+	public void setMinSanity(int minSanity, boolean overrideChecks) {
+		if(!overrideChecks) if(player == null || player.world.isRemote || !((ServerPlayerEntity) player).interactionManager.survivalOrAdventure()) return;
 		this.tempMinSanity = MathHelper.clamp(minSanity, this.minSanity, this.tempMaxSanity);
-		this.setSanity(this.sanity);
+		this.setSanity(this.sanity, overrideChecks);
 	}
 
 	@Override
-	public void changeMinSanity(int amount) {
-		this.setMinSanity(this.minSanity + amount);
+	public void changeMinSanity(int amount, boolean overrideChecks) {
+		this.setMinSanity(this.minSanity + amount, overrideChecks);
 	}
 
 	@Override
 	public void tick() {
 		int lightLevel = this.player.world.isThundering() ? this.player.world.getNeighborAwareLightSubtracted(this.player.getPosition(), 10) : this.player.world.getLight(this.player.getPosition());
 		if(this.maxSanity != this.tempMaxSanity) {
-			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
+			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(this.player.world.getDimensionKey(), lightLevel);
 			this.recoveryThreshold = recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold) : -1;
 		}
-		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(this.player.getHealth(), 1, 20)); //TODO: Make more expansive later
+		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(this.player.world.getDimensionKey(), lightLevel, 20 - (int) MathHelper.clamp(this.player.getHealth(), 1, 20)); //TODO: Make more expansive later
 		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold));
 
 		if(this.attackThreshold != -1) this.attackTime++;
@@ -164,7 +167,7 @@ public class PlayerSanity implements ISanity {
 
 	private void updateSanityInformation(int originalSanity, int newSanity) {
 		if(!this.firstInteraction) this.setupInitialMaps();
-		if(originalSanity == newSanity || this.player == null || this.player.world.isRemote) return;
+		if(originalSanity == newSanity) return;
 		if(originalSanity > newSanity) {
 			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.UPDATE));
 			for(int i = originalSanity - 1; i >= newSanity; --i) {
