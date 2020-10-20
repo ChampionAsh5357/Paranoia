@@ -15,36 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.api.callback;
+package io.github.championash5357.paranoia.api.util;
 
 import io.github.championash5357.paranoia.api.sanity.ISanity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.common.util.INBTSerializable;
 
-//TODO: Document
 @FunctionalInterface
-public interface ICallback extends INBTSerializable<CompoundNBT> {
+public interface ITickable {
 
-	void call(ServerPlayerEntity player, ISanity inst, int sanity, int prevSanity, Phase phase);
-	
-	default boolean restartOnReload() {
-		return false;
-	}
-	
-	default boolean hasData() {
-		return false;
-	}
-	
-	@Override
-	default void deserializeNBT(CompoundNBT nbt) {}
-	
-	@Override
-	default CompoundNBT serializeNBT() { return null; }
-	
-	public static enum Phase {
-		START,
-		UPDATE,
-		STOP;
-	}
+	void tick(ServerPlayerEntity player, ISanity sanity);
 }

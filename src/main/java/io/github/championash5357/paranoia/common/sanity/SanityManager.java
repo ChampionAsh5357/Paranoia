@@ -17,10 +17,7 @@
 
 package io.github.championash5357.paranoia.common.sanity;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,14 +26,11 @@ import com.google.gson.*;
 
 import net.minecraft.client.resources.JsonReloadListener;
 import net.minecraft.entity.EntityType;
+import net.minecraft.item.Item;
 import net.minecraft.profiler.IProfiler;
 import net.minecraft.resources.IResourceManager;
 import net.minecraft.util.JSONUtils;
-import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.registry.Registry;
-import net.minecraft.world.World;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class SanityManager extends JsonReloadListener {
@@ -47,7 +41,7 @@ public class SanityManager extends JsonReloadListener {
 	private final Map<Integer, Integer> maxSanityRecoverTimeMap = new HashMap<>();
 	private final Map<Integer, List<Integer>> sanityLevelMap = new HashMap<>();
 	private final Map<EntityType<?>, Integer> entitySanityLoss = new HashMap<>();
-	private final Map<RegistryKey<World>, Double> dimensionMultiplier = new HashMap<>();
+	private final Map<Item, Integer> itemSanity = new HashMap<>();
 	
 	public SanityManager() {
 		super(GSON, "sanity");
@@ -59,13 +53,13 @@ public class SanityManager extends JsonReloadListener {
 		this.maxSanityRecoverTimeMap.clear();
 		this.sanityLevelMap.clear();
 		this.entitySanityLoss.clear();
-		this.dimensionMultiplier.clear();
+		this.itemSanity.clear();
 		map.forEach((id, element) -> {
-			if(id.getPath().equals("sanity_attack")) parseSanityAttack(JSONUtils.getJsonObject(element, "sanity_attack"));
-			else if(id.getPath().equals("sanity_levels")) parseSanityLevels(JSONUtils.getJsonObject(element, "sanity_levels"));
-			else if(id.getPath().equals("max_sanity")) parseMaxSanityRecovery(JSONUtils.getJsonObject(element, "max_sanity"));
-			else if(id.getPath().equals("entity_loss")) parseEntitySanityLoss(JSONUtils.getJsonObject(element, "entity_loss"));
-			else if(id.getPath().equals("dimension_multiplier")) parseDimensionMultiplier(JSONUtils.getJsonObject(element, "dimension_multiplier"));
+			if(id.getPath().equals("sanity_attack")) this.parseSanityAttack(JSONUtils.getJsonObject(element, "sanity_attack"));
+			else if(id.getPath().equals("sanity_levels")) this.parseSanityLevels(JSONUtils.getJsonObject(element, "sanity_levels"));
+			else if(id.getPath().equals("max_sanity")) this.parseMaxSanityRecovery(JSONUtils.getJsonObject(element, "max_sanity"));
+			else if(id.getPath().equals("entity_damage")) this.parseEntitySanityLoss(JSONUtils.getJsonObject(element, "entity_damage"));
+			else if(id.getPath().equals("item_sanity")) this.parseItemSanity(JSONUtils.getJsonObject(element, "item_sanity"));
 			else throw new JsonIOException("The following json file is incorrectly named or placed: " + id);
 		});
 	}
@@ -86,7 +80,7 @@ public class SanityManager extends JsonReloadListener {
 	
 	//TODO: Handle as equation at some point
 	private void parseMaxSanityRecovery(JsonObject obj) {
-		obj.entrySet().forEach(entry -> this.maxSanityRecoverTimeMap.put(Integer.valueOf(entry.getKey()), entry.getValue().getAsInt()));
+		obj.entrySet().forEach(entry -> this.maxSanityRecoverTimeMap.put(Integer.valueOf(entry.getKey()), Math.abs(entry.getValue().getAsInt()))); //TODO: Handle error properly
 	}
 	
 	private void parseEntitySanityLoss(JsonObject obj) {
@@ -98,12 +92,12 @@ public class SanityManager extends JsonReloadListener {
 		});
 	}
 	
-	private void parseDimensionMultiplier(JsonObject obj) {
-		if(JSONUtils.getBoolean(obj, "replace", false)) this.dimensionMultiplier.clear();
+	private void parseItemSanity(JsonObject obj) {
+		if(JSONUtils.getBoolean(obj, "replace", false)) this.itemSanity.clear();
 		JSONUtils.getJsonObject(obj, "entries").entrySet().forEach(entry -> {
-			RegistryKey<World> key = RegistryKey.getOrCreateKey(Registry.WORLD_KEY, new ResourceLocation(entry.getKey()));
-			if(key == null) LOGGER.warn("The current world key {} is currently not present or doesn't exist. Skipping.", entry.getKey());
-			else this.dimensionMultiplier.put(key, MathHelper.clamp(entry.getValue().getAsDouble(), -1, 1)); //TODO: Handle correctly
+			Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(entry.getKey()));
+			if(item == null) LOGGER.warn("The entity {} is currently not present or doesn't exist. Skipping.", entry.getKey());
+			else this.itemSanity.put(item, entry.getValue().getAsInt());
 		});
 	}
 	
@@ -111,19 +105,19 @@ public class SanityManager extends JsonReloadListener {
 		return this.sanityAttackMap.getOrDefault(sanity, -1);
 	}
 	
-	public int getMaxSanityRecoveryTime(RegistryKey<World> key, int lightLevel) {
-		int time = this.maxSanityRecoverTimeMap.getOrDefault(lightLevel, -1);
-		double multiplier = this.dimensionMultiplier.getOrDefault(key, 1.0);
-		return (int) (time < 0 ? time * (1 - multiplier) : time * (multiplier + 1));
+	public int getMaxSanityRecoveryTime(int lightLevel) {
+		return this.maxSanityRecoverTimeMap.getOrDefault(lightLevel, -1);
 	}
 	
-	public int getSanityLevelTime(RegistryKey<World> key, int lightLevel, int hearts) {
-		int time = this.sanityLevelMap.getOrDefault(lightLevel, new ArrayList<>()).get(hearts);
-		double multiplier = this.dimensionMultiplier.getOrDefault(key, 1.0);
-		return (int) (time < 0 ? time * (1 - multiplier) : time * (multiplier + 1));
+	public int getSanityLevelTime(int lightLevel, int hearts) {
+		return this.sanityLevelMap.getOrDefault(lightLevel, new ArrayList<>()).get(hearts);
 	}
 	
 	public int getSanityLoss(EntityType<?> type) {
 		return this.entitySanityLoss.getOrDefault(type, 0);
+	}
+	
+	public int getItemSanityEffect(Item item) {
+		return this.itemSanity.getOrDefault(item, 0);
 	}
 }

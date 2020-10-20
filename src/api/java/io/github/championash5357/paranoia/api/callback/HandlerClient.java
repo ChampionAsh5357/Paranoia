@@ -23,8 +23,8 @@ import net.minecraft.util.ResourceLocation;
 //TODO: Document
 public abstract class HandlerClient implements IClientCallbackHandler<ByteNBT> {
 
-	protected static final byte STOP = 0b1;
-	protected static final byte NORMAL = 0b0;
+	protected static final byte STOP = 0b0;
+	protected static final byte NORMAL = 0b1;
 	private final ResourceLocation id, stopId;
 	private byte handler;
 	
@@ -52,8 +52,8 @@ public abstract class HandlerClient implements IClientCallbackHandler<ByteNBT> {
 	}
 	
 	protected ResourceLocation getId(byte status) {
-		if(status == 0b1) return this.stopId;
-		else return this.id;
+		if(status == NORMAL) return this.id;
+		else return this.stopId;
 	}
 	
 	@Override

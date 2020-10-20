@@ -7,18 +7,27 @@ issueTrackerURL="https://github.com/ChampionAsh5357/Paranoia/issues"
 [[mods]]
 modId="paranoia"
 version="${version}"
-displayName="Paranoia"
+displayName="\u00a77Paranoia"
 
 # updateJSONURL=""
 # displayURL=""
-# logoFile=""
+logoFile="logo.png"
 
-# credits=""
+credits="Thank you for the following ideas:
+\u00a79lilypuree\u00a7f: \u00a76Rotten flesh/poisonous potatoes decrease sanity.
+\u00a7fsciwhiz12\u00a7f: \u00a76Water bottles/cooked food increase sanity.
+\u00a7fsciwhiz12\u00a7f: \u00a76Lying in bed increases sanity.
+\u00a79lilypuree \u00a7fand \u00a7aCommoble\u00a7f: \u00a76Randomly open/close doors around players silently.
+\u00a79Amber\u00a7f: \u00a76Lower player visibility.
+\u00a7fsciwhiz12\u00a7f: \u00a76Chance to drop the held item.
+\u00a7fsciwhiz12\u00a7f: \u00a76Hotbar slots can be swapped.
+\u00a7fsciwhiz12\u00a7f: \u00a76Sound effects behind the player.
+\u00a79jedijoe\u00a7f: \u00a76Ghost fires.
+"
 authors="\u00a7bChampionAsh5357"
 
-description="
-TODO.
-"
+description="\u00a76Not everything is what it seems in the world of Minecraft. Sometimes, your eyes could gray out. Other times, you might be wandering within a fogged world.
+Welcome to \u00a77Paranoia\u00a76, the mod that introduces a sanity bar and nothing else. Well...maybe a few effects here and there. But it wouldn't be fun if sanity was so linear. So, prepare for a world of randomness as you experience Minecraft with sanity."
 
 [[dependencies.paranoia]]
     modId="forge"

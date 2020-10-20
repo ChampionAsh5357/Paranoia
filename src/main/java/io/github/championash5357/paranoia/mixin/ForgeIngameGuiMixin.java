@@ -115,12 +115,12 @@ public abstract class ForgeIngameGuiMixin extends IngameGui {
         final int BACKGROUND = (highlight ? 25 : 16);
         int MARGIN = 16;
         boolean enable = false;
-        if (ClientReference.hasSanityOverlay()) enable = true;
+        if (ClientReference.getInstance().hasSanityOverlay()) enable = true;
         else if (player.isPotionActive(Effects.POISON)) MARGIN += 36;
         else if (player.isPotionActive(Effects.WITHER)) MARGIN += 72;
         float absorbRemaining = absorb;
 
-        for (int i = ClientReference.isMissingHealth() ? 2 : MathHelper.ceil((healthMax + absorb) / 2.0F) - 1; i >= 0; --i)
+        for (int i = ClientReference.getInstance().isMissingHealth() ? 2 : MathHelper.ceil((healthMax + absorb) / 2.0F) - 1; i >= 0; --i)
         {
             //int b0 = (highlight ? 1 : 0);
             int row = MathHelper.ceil((float)(i + 1) / 10.0F) - 1;

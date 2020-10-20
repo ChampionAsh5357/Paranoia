@@ -28,6 +28,7 @@ import io.github.championash5357.paranoia.api.callback.ICallback;
 import io.github.championash5357.paranoia.api.callback.IClientCallbackHandler;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks.CallbackType;
+import io.github.championash5357.paranoia.api.sanity.ISanity;
 import io.github.championash5357.paranoia.common.Paranoia;
 import io.github.championash5357.paranoia.common.network.server.SHandleClientCallback;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -46,7 +47,7 @@ public class ClientCallback implements ICallback {
 	}
 	
 	@Override
-	public void call(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
+	public void call(ServerPlayerEntity player, ISanity inst, int sanity, int prevSanity, Phase phase) {
 		List<String> calls = new ArrayList<>();
 		List<CallbackType> singletons = new ArrayList<>();
 		this.handlers.forEach((str, callback) -> {

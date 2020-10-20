@@ -24,6 +24,7 @@ import java.util.function.Function;
 
 import io.github.championash5357.paranoia.api.callback.ICallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+import io.github.championash5357.paranoia.api.sanity.ISanity;
 import net.minecraft.entity.ai.attributes.Attribute;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.AttributeModifierManager;
@@ -39,7 +40,7 @@ public class AttributeCallback implements ICallback {
 	}
 
 	@Override
-	public void call(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
+	public void call(ServerPlayerEntity player, ISanity inst, int sanity, int prevSanity, Phase phase) {
 		if(phase == Phase.STOP) removeAttributesModifiersFromEntity(player.getAttributeManager());
 		else applyAttributesModifiersToEntity(player.getAttributeManager(), sanity);
 	}

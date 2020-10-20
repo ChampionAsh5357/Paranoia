@@ -17,11 +17,13 @@
 
 package io.github.championash5357.paranoia.api.sanity;
 
+import io.github.championash5357.paranoia.api.util.ITickable;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.util.INBTSerializable;
 
-//TODO: Document
+//TODO: Document, probably handle better too
 public interface ISanity extends INBTSerializable<CompoundNBT> {
 	
 	int getSanity();
@@ -40,6 +42,9 @@ public interface ISanity extends INBTSerializable<CompoundNBT> {
 	void changeMaxSanity(int amount, boolean overrideChecks);
 	void setMinSanity(int minSanity, boolean overrideChecks);
 	void changeMinSanity(int amount, boolean overrideChecks);
+	
+	void addTemporaryTickable(ResourceLocation location, ITickable tickable);
+	boolean removeTemporaryTickable(ResourceLocation location);
 	
 	void executeLoginCallbacks(ServerPlayerEntity player);
 	void tick();

@@ -24,10 +24,12 @@ import javax.annotation.Nullable;
 
 import org.apache.http.ParseException;
 
+import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.callback.SanityCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
-import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.util.DamageSources;
+import io.github.championash5357.paranoia.api.util.IDeferredCallback;
+import io.github.championash5357.paranoia.api.util.ITickable;
 import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -37,7 +39,6 @@ import net.minecraft.nbt.StringNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
-import net.minecraftforge.fml.util.ThreeConsumer;
 
 //TODO: Document
 public class PlayerSanity implements ISanity {
@@ -51,7 +52,8 @@ public class PlayerSanity implements ISanity {
 	private int threshold, recoveryThreshold, attackThreshold; // Thresholds on when to execute tick
 	private final Map<Integer, Set<ResourceLocation>> unloadedCallbacks = new HashMap<>();
 	private final Map<Integer, Set<SanityCallback>> loadedCallbacks = new HashMap<>();
-	private final List<ThreeConsumer<ServerPlayerEntity, Integer, Integer>> deferredCallbacks = new ArrayList<>();
+	private final List<IDeferredCallback> deferredCallbacks = new ArrayList<>();
+	private final Map<String, ITickable> temporaryTickables = new HashMap<>();
 
 	public PlayerSanity() {
 		this(null);
@@ -87,6 +89,16 @@ public class PlayerSanity implements ISanity {
 	@Override
 	public int getMaxSanity() {
 		return this.tempMaxSanity;
+	}
+	
+	@Override
+	public void addTemporaryTickable(ResourceLocation location, ITickable tickable) {
+		this.temporaryTickables.put(location.toString(), tickable);
+	}
+
+	@Override
+	public boolean removeTemporaryTickable(ResourceLocation location) {
+		return this.temporaryTickables.remove(location.toString()) != null;
 	}
 
 	@Override
@@ -128,14 +140,19 @@ public class PlayerSanity implements ISanity {
 
 	@Override
 	public void tick() {
-		int lightLevel = this.player.world.isThundering() ? this.player.world.getNeighborAwareLightSubtracted(this.player.getPosition(), 10) : this.player.world.getLight(this.player.getPosition());
+		if(this.player.world.isRemote) return;
+		ServerPlayerEntity player = (ServerPlayerEntity) this.player;
+		double multiplier = SanityCallbacks.handleMultipliers(player, this).apply(false);
+		int lightLevel = player.world.isThundering() ? player.world.getNeighborAwareLightSubtracted(player.getPosition(), 10) : player.world.getLight(player.getPosition());
 		if(this.maxSanity != this.tempMaxSanity) {
-			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(this.player.world.getDimensionKey(), lightLevel);
-			this.recoveryThreshold = recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold) : -1;
+			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
+			this.recoveryThreshold = (int) (recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold * multiplier) : -1);
 		}
-		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(this.player.world.getDimensionKey(), lightLevel, 20 - (int) MathHelper.clamp(this.player.getHealth(), 1, 20)); //TODO: Make more expansive later
+		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(player.getHealth(), 1, 20)); //TODO: Make more expansive later
+		threshold *= threshold < 0 ? SanityCallbacks.handleMultipliers(player, this).apply(true) : multiplier;
 		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold));
 
+		if(!this.temporaryTickables.isEmpty()) this.temporaryTickables.values().forEach(tickable -> tickable.tick(player, this));
 		if(this.attackThreshold != -1) this.attackTime++;
 		if(this.recoveryThreshold != -1 && this.maxSanity != this.tempMaxSanity) this.recoveryTime++;
 		else this.recoveryTime = 0;
@@ -152,7 +169,7 @@ public class PlayerSanity implements ISanity {
 			this.threshold = -1;
 		}
 		if(this.attackThreshold != -1 && this.attackTime >= this.attackThreshold) {
-			this.player.attackEntityFrom(DamageSources.PARANOIA, 1.0f);
+			player.attackEntityFrom(DamageSources.PARANOIA, 1.0f);
 			this.attackTime = 0;
 			this.attackThreshold = - 1;
 			setAttackThreshold();
@@ -169,13 +186,13 @@ public class PlayerSanity implements ISanity {
 		if(!this.firstInteraction) this.setupInitialMaps();
 		if(originalSanity == newSanity) return;
 		if(originalSanity > newSanity) {
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.UPDATE));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, this, newSanity, originalSanity, Phase.UPDATE));
 			for(int i = originalSanity - 1; i >= newSanity; --i) {
 				@Nullable Set<ResourceLocation> unloaded = this.unloadedCallbacks.get(i);
 				if(unloaded != null) {
 					unloaded.forEach(location -> {
 						SanityCallback callback = SanityCallbacks.createCallback(location);
-						callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.START);
+						callback.getHandler().call((ServerPlayerEntity) this.player, this, newSanity, originalSanity, Phase.START);
 						this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 					});
 					this.unloadedCallbacks.remove(i);
@@ -186,13 +203,13 @@ public class PlayerSanity implements ISanity {
 				@Nullable Set<SanityCallback> loaded = this.loadedCallbacks.get(i);
 				if(loaded != null) {
 					loaded.forEach(callback -> {
-						callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.STOP);
+						callback.getHandler().call((ServerPlayerEntity) this.player, this, newSanity, originalSanity, Phase.STOP);
 						this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());
 					});
 					this.loadedCallbacks.remove(i);
 				}
 			}
-			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, newSanity, originalSanity, Phase.UPDATE));
+			this.loadedCallbacks.entrySet().stream().flatMap(entry -> entry.getValue().stream()).forEach(callback -> callback.getHandler().call((ServerPlayerEntity) this.player, this, newSanity, originalSanity, Phase.UPDATE));
 		}
 		setAttackThreshold();
 	}
@@ -215,7 +232,7 @@ public class PlayerSanity implements ISanity {
 
 	@Override
 	public void executeLoginCallbacks(ServerPlayerEntity player) {
-		this.deferredCallbacks.forEach(consumer -> consumer.accept(player, this.sanity, this.prevSanity));
+		this.deferredCallbacks.forEach(callback -> callback.run(player, this, this.sanity, this.prevSanity));
 		this.deferredCallbacks.clear();
 	}
 
@@ -298,7 +315,7 @@ public class PlayerSanity implements ISanity {
 				if (inbt instanceof CompoundNBT) {
 					SanityCallback callback = SanityCallbacks.createCallback(new ResourceLocation(((CompoundNBT) inbt).getString("id")));
 					if(((CompoundNBT) inbt).contains("data")) callback.getHandler().deserializeNBT(((CompoundNBT) inbt).getCompound("data"));
-					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().call(player, sanity, prevSanity, Phase.START));
+					if (callback.getHandler().restartOnReload()) deferredCallbacks.add((player, inst, sanity, prevSanity) -> callback.getHandler().call(player, inst, sanity, prevSanity, Phase.START));
 					callbacks.add(callback);
 					registryMap.remove(callback.getId());
 				} else {
@@ -310,7 +327,7 @@ public class PlayerSanity implements ISanity {
 		registryMap.forEach((id, callbackSupplier) -> {
 			SanityCallback callback = callbackSupplier.apply(id);
 			if(this.sanity <= callback.getStartSanity()) {
-				deferredCallbacks.add((player, sanity, prevSanity) -> callback.getHandler().call(player, sanity, prevSanity, Phase.START));
+				deferredCallbacks.add((player, inst, sanity, prevSanity) -> callback.getHandler().call(player, inst, sanity, prevSanity, Phase.START));
 				this.loadedCallbacks.computeIfAbsent(callback.getStopSanity(), a -> new HashSet<>()).add(callback);
 			} else {
 				this.unloadedCallbacks.computeIfAbsent(callback.getStartSanity(), a -> new HashSet<>()).add(callback.getId());

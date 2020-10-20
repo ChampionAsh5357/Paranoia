@@ -4,7 +4,7 @@
 	"package": "io.github.championash5357.paranoia.mixin",
 	"compatibilityLevel": "JAVA_8",
 	"refmap": "paranoia.refmap.json",
-	"mixins": [],
+	"mixins": [ "PositionTriggerMixin" ],
 	"client": [ "ForgeIngameGuiMixin" ],
 	"injectors": {
 		"defaultRequire": 1

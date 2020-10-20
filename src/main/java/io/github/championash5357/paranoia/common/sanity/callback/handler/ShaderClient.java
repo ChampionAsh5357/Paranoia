@@ -15,21 +15,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.sanity.callback;
-
-import java.util.Random;
+package io.github.championash5357.paranoia.common.sanity.callback.handler;
 
 import io.github.championash5357.paranoia.api.callback.HandlerClient;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks.CallbackType;
 import io.github.championash5357.paranoia.common.Paranoia;
+import io.github.championash5357.paranoia.common.util.Helper;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 
 public class ShaderClient extends HandlerClient {
 
 	protected static final byte RED = 0b10;
-	private static final Random RANDOM = new Random();
 	public static final ResourceLocation SHADER = new ResourceLocation(Paranoia.ID, "shader");
 	public static final ResourceLocation RED_SHADER = new ResourceLocation(Paranoia.ID, "red_shader");
 	
@@ -44,10 +42,10 @@ public class ShaderClient extends HandlerClient {
 			return true;
 		} else if(phase == Phase.START && this.getStatus() == RED) return true;
 		else {
-			if(sanity <= 20 && prevSanity > 20 && this.getStatus() != RED && RANDOM.nextInt(100) < 5) {
+			if(sanity <= 20 && prevSanity > 20 && this.getStatus() != RED && Helper.random().nextInt(100) < 5) {
 				this.setStatus(RED);
 				return true;
-			} else if(sanity > 20 && this.getStatus() == RED) this.setStatus(NORMAL);
+			} else if(sanity > 20) this.setStatus(NORMAL);
 			if(this.getStatus() != RED) return true;
 			else return false;
 		}

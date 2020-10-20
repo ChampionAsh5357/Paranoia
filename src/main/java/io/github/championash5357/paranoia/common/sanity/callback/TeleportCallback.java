@@ -23,6 +23,7 @@ import java.util.Map;
 import io.github.championash5357.paranoia.api.callback.ICallback;
 import io.github.championash5357.paranoia.api.callback.ITeleporterCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+import io.github.championash5357.paranoia.api.sanity.ISanity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 
 public class TeleportCallback implements ICallback {
@@ -34,10 +35,10 @@ public class TeleportCallback implements ICallback {
 	}
 	
 	@Override
-	public void call(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
+	public void call(ServerPlayerEntity player, ISanity inst, int sanity, int prevSanity, Phase phase) {
 		if(phase != Phase.STOP && prevSanity > sanity) {
 			teleports.entrySet().stream().filter(entry -> entry.getKey() >= sanity && entry.getKey() < prevSanity)
-			.forEach(entry -> entry.getValue().forEach(teleporter -> teleporter.teleport(player)));
+			.flatMap(entry -> entry.getValue().stream()).forEach(teleporter -> teleporter.teleport(player));
 		}
 	}
 }

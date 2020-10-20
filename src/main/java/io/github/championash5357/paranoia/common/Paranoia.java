@@ -17,6 +17,9 @@
 
 package io.github.championash5357.paranoia.common;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import io.github.championash5357.paranoia.api.sanity.ISanity;
 import io.github.championash5357.paranoia.api.sanity.PlayerSanity;
 import io.github.championash5357.paranoia.api.util.CapabilityInstances;
@@ -41,8 +44,10 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
 import net.minecraftforge.event.world.SleepFinishedTimeEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -60,6 +65,7 @@ public class Paranoia {
 	public static final String ID = "paranoia";
 
 	public static final ISidedReference SIDED_SYSTEM = DistExecutor.safeRunForDist(() -> ClientReference::new, () -> DedicatedServerReference::new);
+	private static final Logger LOGGER = LogManager.getLogger();
 	private static Paranoia instance;
 	private SimpleChannel network;
 	private final SanityManager sanityManager;
@@ -81,7 +87,9 @@ public class Paranoia {
 		forge.addListener(this::tickPlayer);
 		forge.addListener(this::clonePlayer);
 		forge.addListener(EventPriority.LOWEST, this::damage);
+		forge.addListener(this::slept);
 		forge.addListener(this::wake);
+		forge.addListener(this::itemUse);
 	}
 
 	public static final Paranoia getInstance() {
@@ -118,6 +126,11 @@ public class Paranoia {
 		CommandRegistrar.register(event.getDispatcher());
 	}
 
+	private void itemUse(final LivingEntityUseItemEvent.Finish event) {
+		if(event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity)
+			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getItemSanityEffect(event.getItem().getItem())));
+	}
+
 	private void damage(final LivingDamageEvent event) {
 		if(!event.isCanceled() && event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity && event.getSource().getTrueSource() != null)
 			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getSanityLoss(event.getSource().getTrueSource().getType())));
@@ -140,14 +153,22 @@ public class Paranoia {
 			});
 		});
 	}
-	
-	private void wake(final SleepFinishedTimeEvent event) {
+
+	private void slept(final SleepFinishedTimeEvent event) {
 		if(!event.getWorld().isRemote()) {
 			event.getWorld().getPlayers().forEach(player -> {
 				player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> {
 					sanity.changeMaxSanity(5);
 					sanity.changeSanity(15);
 				});
+			});
+		}
+	}
+
+	private void wake(final PlayerWakeUpEvent event) {
+		if(event.getPlayer().isServerWorld()) {
+			event.getPlayer().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> {
+				if(!sanity.removeTemporaryTickable(new ResourceLocation(Paranoia.ID, "sleeping"))) LOGGER.error("Tickable {} does not exist!", "paranoia:sleeping");
 			});
 		}
 	}

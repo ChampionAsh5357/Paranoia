@@ -18,7 +18,7 @@
 package io.github.championash5357.paranoia.common.network;
 
 import io.github.championash5357.paranoia.common.Paranoia;
-import io.github.championash5357.paranoia.common.network.server.SHandleClientCallback;
+import io.github.championash5357.paranoia.common.network.server.*;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.network.NetworkDirection;
 import net.minecraftforge.fml.network.NetworkRegistry;
@@ -38,6 +38,18 @@ public class NetworkHandler {
 		.encoder(SHandleClientCallback::encode)
 		.decoder(SHandleClientCallback::decode)
 		.consumer(SHandleClientCallback::handle)
+		.add();
+		
+		channel.messageBuilder(SMobSounds.class, ++id, NetworkDirection.PLAY_TO_CLIENT)
+		.encoder(SMobSounds::encode)
+		.decoder(SMobSounds::decode)
+		.consumer(SMobSounds::handle)
+		.add();
+		
+		channel.messageBuilder(SAddGhostBlocks.class, ++id, NetworkDirection.PLAY_TO_CLIENT)
+		.encoder(SAddGhostBlocks::encode)
+		.decoder(SAddGhostBlocks::decode)
+		.consumer(SAddGhostBlocks::handle)
 		.add();
 		
 		return channel;

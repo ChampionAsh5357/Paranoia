@@ -19,7 +19,7 @@ package io.github.championash5357.paranoia.api.callback;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
+import java.util.function.*;
 
 import javax.annotation.Nullable;
 
@@ -27,11 +27,15 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import com.ibm.icu.impl.locale.XCldrStub.ImmutableMap;
 
+import io.github.championash5357.paranoia.api.sanity.ISanity;
+import io.github.championash5357.paranoia.api.util.ITickable;
 import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.ai.attributes.Attribute;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.MathHelper;
 
 //TODO: Document
 public class SanityCallbacks {
@@ -40,6 +44,8 @@ public class SanityCallbacks {
 	private static final Map<ResourceLocation, Function<ResourceLocation, IClientCallbackHandler<?>>> CLIENT_CALLBACK_HANDLERS = new LinkedHashMap<>();
 	private static final Map<Attribute, Pair<AttributeModifier, Function<Integer, Double>>> ATTRIBUTES = new HashMap<>();
 	private static final Map<Integer, List<ITeleporterCallback>> TELEPORTS = new HashMap<>();
+	private static final Map<ResourceLocation, Pair<Integer, ITickable>> TICKABLES = new HashMap<>();
+	private static final Map<Predicate<ServerPlayerEntity>, BiFunction<ServerPlayerEntity, ISanity, Double>> MULTIPLIERS = new HashMap<>();
 	
 	public static synchronized void registerCallback(ResourceLocation id, Function<ResourceLocation, SanityCallback> callbackSupplier) {
 		if(SANITY_CALLBACKS.get(id) != null) throw new IllegalArgumentException("The name " + id.toString() + " has been registered twice.");
@@ -77,6 +83,26 @@ public class SanityCallbacks {
 	
 	public static Map<Integer, List<ITeleporterCallback>> getTeleporters() {
 		return ImmutableMap.copyOf(TELEPORTS);
+	}
+	
+	public static synchronized void registerTickableCallback(ResourceLocation id, int sanity, ITickable tickable) {
+		TICKABLES.put(id, Pair.of(sanity, tickable));
+	}
+	
+	public static Map<ResourceLocation, Pair<Integer, ITickable>> getTickables() {
+		return ImmutableMap.copyOf(TICKABLES);
+	}
+	
+	public static void registerMultiplier(Predicate<ServerPlayerEntity> condition, double multiplier) {
+		registerMultiplier(condition, (player, sanity) -> multiplier);
+	}
+	
+	public static synchronized void registerMultiplier(Predicate<ServerPlayerEntity> condition, BiFunction<ServerPlayerEntity, ISanity, Double> multiplier) {
+		MULTIPLIERS.put(condition, multiplier);
+	}
+	
+	public static Function<Boolean, Double> handleMultipliers(ServerPlayerEntity player, ISanity sanity) {
+		return negative -> MULTIPLIERS.entrySet().stream().filter(entry -> entry.getKey().test(player)).reduce(1.0, (partial, entry) -> partial * MathHelper.clamp((1 + (negative ? 1 : -1) * entry.getValue().apply(player, sanity)), 0.0, 2.0), (a, b) -> a * b);
 	}
 	
 	public static class CallbackType {

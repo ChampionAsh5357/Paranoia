@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.sanity.callback;
+package io.github.championash5357.paranoia.common.sanity.callback.handler;
 
 import io.github.championash5357.paranoia.api.callback.HandlerClient;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
@@ -24,11 +24,11 @@ import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 
-public class MissingHeartClient extends HandlerClient {
+public class HeartOverlayClient extends HandlerClient {
 
-	public static final ResourceLocation MISSING_HEART = new ResourceLocation(Paranoia.ID, "missing_heart");
+	public static final ResourceLocation HEART_OVERLAY = new ResourceLocation(Paranoia.ID, "heart_overlay");
 	
-	public MissingHeartClient(ResourceLocation id) {
+	public HeartOverlayClient(ResourceLocation id) {
 		super(id);
 	}
 
@@ -39,19 +39,18 @@ public class MissingHeartClient extends HandlerClient {
 			return true;
 		} else if(phase == Phase.START && this.getStatus() == NORMAL) return true;
 		else {
-			if(sanity <= 20 && prevSanity > 20) {
+			if(sanity <= 5 && prevSanity > 5) {
 				this.setStatus(NORMAL);
 				return true;
-			} else if(sanity > 30 && this.getStatus() == NORMAL) {
+			} else if(sanity > 5 && this.getStatus() == NORMAL) {
 				this.setStatus(STOP);
 				return true;
 			} else return false;
 		}
 	}
-
+	
 	@Override
 	public CallbackType getType() {
 		return CallbackType.OTHER;
 	}
-
 }
