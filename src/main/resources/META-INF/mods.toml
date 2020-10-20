@@ -9,7 +9,7 @@ modId="paranoia"
 version="${version}"
 displayName="\u00a77Paranoia"
 
-# updateJSONURL=""
+updateJSONURL="https://championash5357.github.io/ChampionAsh5357/projects/maven/io/github/championash5357/paranoia/update.json"
 # displayURL=""
 logoFile="logo.png"
 
