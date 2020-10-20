@@ -146,7 +146,6 @@ artifacts {
 }
 
 task("uploadJars", dependsOn: "build") {
-    apply plugin: "maven"
     uploadArchives {
         repositories {
             mavenDeployer {
@@ -189,5 +188,5 @@ processResources {
 }
 
 mixin {
-	add sourceSets.main, '${modId}.refmap.json'
+	add sourceSets.main, "${modId}.refmap.json"
 }

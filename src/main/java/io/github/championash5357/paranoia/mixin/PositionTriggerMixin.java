@@ -22,7 +22,6 @@ public abstract class PositionTriggerMixin {
 	@Inject(method = "trigger(Lnet/minecraft/entity/player/ServerPlayerEntity;)V", at = @At("HEAD"))
 	private void addTickable(ServerPlayerEntity player, CallbackInfo info) {
 		if(this.getId().equals(SLEPT_IN_BED)) {
-			System.out.println("TEST");
 			player.getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> {
 				sanity.addTemporaryTickable(new ResourceLocation(Paranoia.ID, "sleeping"), new Timer(600, 100, (p) -> sanity.changeSanity(1)));
 			});

@@ -40,12 +40,12 @@ public class ShaderClient extends HandlerClient {
 		if(phase == Phase.STOP) {
 			this.setStatus(STOP);
 			return true;
-		} else if(phase == Phase.START && this.getStatus() == RED) return true;
+		} else if(phase == Phase.START && (this.getStatus() == RED || this.getStatus() == NORMAL)) return true;
 		else {
 			if(sanity <= 20 && prevSanity > 20 && this.getStatus() != RED && Helper.random().nextInt(100) < 5) {
 				this.setStatus(RED);
 				return true;
-			} else if(sanity > 20) this.setStatus(NORMAL);
+			} else if((this.getStatus() == RED && sanity > 20) || this.getStatus() != RED) this.setStatus(NORMAL);
 			if(this.getStatus() != RED) return true;
 			else return false;
 		}
