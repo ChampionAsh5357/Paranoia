@@ -27,15 +27,10 @@ import org.apache.http.ParseException;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.callback.SanityCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
-import io.github.championash5357.paranoia.api.util.DamageSources;
-import io.github.championash5357.paranoia.api.util.IDeferredCallback;
-import io.github.championash5357.paranoia.api.util.ITickable;
-import io.github.championash5357.paranoia.common.Paranoia;
+import io.github.championash5357.paranoia.api.util.*;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.StringNBT;
+import net.minecraft.nbt.*;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
@@ -145,10 +140,10 @@ public class PlayerSanity implements ISanity {
 		double multiplier = SanityCallbacks.handleMultipliers(player, this).apply(false);
 		int lightLevel = player.world.isThundering() ? player.world.getNeighborAwareLightSubtracted(player.getPosition(), 10) : player.world.getLight(player.getPosition());
 		if(this.maxSanity != this.tempMaxSanity) {
-			int recoveryThreshold = Paranoia.getInstance().getSanityManager().getMaxSanityRecoveryTime(lightLevel);
+			int recoveryThreshold = SanityCallbacks.getSanityManager().getMaxSanityRecoveryTime(lightLevel);
 			this.recoveryThreshold = (int) (recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold * multiplier) : -1);
 		}
-		int threshold = Paranoia.getInstance().getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(player.getHealth(), 1, 20)); //TODO: Make more expansive later
+		int threshold = SanityCallbacks.getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(player.getHealth(), 1, 20)); //TODO: Make more expansive later
 		threshold *= threshold < 0 ? SanityCallbacks.handleMultipliers(player, this).apply(true) : multiplier;
 		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold));
 
@@ -177,8 +172,8 @@ public class PlayerSanity implements ISanity {
 	}
 	
 	private void setAttackThreshold() {
-		int attackThreshold = Paranoia.getInstance().getSanityManager().getAttackTime(this.sanity);
-		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, Paranoia.getInstance().getSanityManager().getAttackTime(this.sanity)) : -1;
+		int attackThreshold = SanityCallbacks.getSanityManager().getAttackTime(this.sanity);
+		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, SanityCallbacks.getSanityManager().getAttackTime(this.sanity)) : -1;
 		if(this.attackThreshold == -1) this.attackTime = 0;
 	}
 

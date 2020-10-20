@@ -96,6 +96,8 @@ minecraft {
 
 dependencies {
     minecraft 'net.minecraftforge:forge:' + mc + '-' + forge
+    
+    implementation sourceSets.api.output
 }
 
 jar {

@@ -20,15 +20,13 @@ package io.github.championash5357.paranoia.common;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
 import io.github.championash5357.paranoia.api.sanity.ISanity;
 import io.github.championash5357.paranoia.api.sanity.PlayerSanity;
 import io.github.championash5357.paranoia.api.util.CapabilityInstances;
 import io.github.championash5357.paranoia.client.ClientReference;
-import io.github.championash5357.paranoia.common.init.CallbackRegistrar;
-import io.github.championash5357.paranoia.common.init.CapabilityRegistrar;
-import io.github.championash5357.paranoia.common.init.CommandRegistrar;
+import io.github.championash5357.paranoia.common.init.*;
 import io.github.championash5357.paranoia.common.network.NetworkHandler;
-import io.github.championash5357.paranoia.common.sanity.SanityManager;
 import io.github.championash5357.paranoia.common.util.CapabilityProviderSerializable;
 import io.github.championash5357.paranoia.data.client.Localizations;
 import io.github.championash5357.paranoia.server.dedicated.DedicatedServerReference;
@@ -38,9 +36,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
-import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.*;
 import net.minecraftforge.event.TickEvent.Phase;
 import net.minecraftforge.event.TickEvent.PlayerTickEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -68,11 +64,9 @@ public class Paranoia {
 	private static final Logger LOGGER = LogManager.getLogger();
 	private static Paranoia instance;
 	private SimpleChannel network;
-	private final SanityManager sanityManager;
 
 	public Paranoia() {
 		instance = this;
-		this.sanityManager = new SanityManager();
 
 		final IEventBus mod = FMLJavaModLoadingContext.get().getModEventBus(),
 				forge = MinecraftForge.EVENT_BUS;
@@ -100,10 +94,6 @@ public class Paranoia {
 		return this.network;
 	}
 
-	public final SanityManager getSanityManager() {
-		return this.sanityManager;
-	}
-
 	private void data(final GatherDataEvent event) {
 		DataGenerator gen = event.getGenerator();
 		if(event.includeClient()) {
@@ -128,12 +118,12 @@ public class Paranoia {
 
 	private void itemUse(final LivingEntityUseItemEvent.Finish event) {
 		if(event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity)
-			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getItemSanityEffect(event.getItem().getItem())));
+			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(SanityCallbacks.getSanityManager().getItemSanityEffect(event.getItem().getItem())));
 	}
 
 	private void damage(final LivingDamageEvent event) {
 		if(!event.isCanceled() && event.getEntityLiving().isServerWorld() && event.getEntityLiving() instanceof PlayerEntity && event.getSource().getTrueSource() != null)
-			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(this.getSanityManager().getSanityLoss(event.getSource().getTrueSource().getType())));
+			event.getEntityLiving().getCapability(CapabilityInstances.SANITY_CAPABILITY).ifPresent(sanity -> sanity.changeSanity(SanityCallbacks.getSanityManager().getSanityLoss(event.getSource().getTrueSource().getType())));
 	}
 
 	private void playerLoggedIn(final PlayerLoggedInEvent event) {
@@ -179,7 +169,7 @@ public class Paranoia {
 	}
 
 	private void attachListeners(final AddReloadListenerEvent event) {
-		event.addListener(this.sanityManager);
+		event.addListener(SanityCallbacks.getSanityManager());
 	}
 
 	private void addLanguageProviders(final DataGenerator gen) {

@@ -28,8 +28,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import com.ibm.icu.impl.locale.XCldrStub.ImmutableMap;
 
 import io.github.championash5357.paranoia.api.sanity.ISanity;
+import io.github.championash5357.paranoia.api.sanity.SanityManager;
 import io.github.championash5357.paranoia.api.util.ITickable;
-import io.github.championash5357.paranoia.common.Paranoia;
 import net.minecraft.entity.ai.attributes.Attribute;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.ServerPlayerEntity;
@@ -46,6 +46,11 @@ public class SanityCallbacks {
 	private static final Map<Integer, List<ITeleporterCallback>> TELEPORTS = new HashMap<>();
 	private static final Map<ResourceLocation, Pair<Integer, ITickable>> TICKABLES = new HashMap<>();
 	private static final Map<Predicate<ServerPlayerEntity>, BiFunction<ServerPlayerEntity, ISanity, Double>> MULTIPLIERS = new HashMap<>();
+	private static final SanityManager MANAGER = new SanityManager();
+	
+	public static final SanityManager getSanityManager() {
+		return MANAGER;
+	}
 	
 	public static synchronized void registerCallback(ResourceLocation id, Function<ResourceLocation, SanityCallback> callbackSupplier) {
 		if(SANITY_CALLBACKS.get(id) != null) throw new IllegalArgumentException("The name " + id.toString() + " has been registered twice.");
@@ -109,8 +114,8 @@ public class SanityCallbacks {
 		
 	    private static final Map<String, CallbackType> VALUES = new ConcurrentHashMap<>();
 		
-	    public static final CallbackType SHADER = get(new ResourceLocation(Paranoia.ID, "shader"), true);
-	    public static final CallbackType OTHER = get(new ResourceLocation(Paranoia.ID, "other"), false);
+	    public static final CallbackType SHADER = get(new ResourceLocation("paranoia", "shader"), true);
+	    public static final CallbackType OTHER = get(new ResourceLocation("paranoia", "other"), false);
 	    
 	    public static CallbackType get(ResourceLocation loc, @Nullable Boolean isSingle) {
 	    	String name = loc.toString();

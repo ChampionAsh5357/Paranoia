@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.sanity;
+package io.github.championash5357.paranoia.api.sanity;
 
 import java.util.*;
 
