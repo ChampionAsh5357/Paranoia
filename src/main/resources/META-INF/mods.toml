@@ -6,7 +6,7 @@ issueTrackerURL="https://github.com/ChampionAsh5357/Paranoia/issues"
 
 [[mods]]
 modId="paranoia"
-version="${version}"
+version="${file.jarVersion}"
 displayName="\u00a77Paranoia"
 
 updateJSONURL="https://championash5357.github.io/ChampionAsh5357/projects/maven/io/github/championash5357/paranoia/update.json"

@@ -174,19 +174,6 @@ signing {
     sign configurations.archives
 }
 
-processResources {
-   inputs.property 'version', project.version
-   
-   from(sourceSets.main.resources.srcDirs) {
-       include 'META-INF/mods.toml'
-       expand 'version': project.version
-   }
-   
-   from(sourceSets.main.resources.srcDirs) {
-       exclude 'META-INF/mods.toml'
-   }
-}
-
 mixin {
 	add sourceSets.main, "${modId}.refmap.json"
 }
