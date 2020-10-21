@@ -33,6 +33,13 @@ import net.minecraft.util.JSONUtils;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.registries.ForgeRegistries;
 
+/**
+ * Grabs the server side information to be used by
+ * the sanity instance when applicable. Since these
+ * are JSON files, they are not referenced by any
+ * callbacks and instead handled externally or inside
+ * {@link ISanity#tick()}.
+ */
 public class SanityManager extends JsonReloadListener {
 
 	private static final Gson GSON = (new GsonBuilder()).setPrettyPrinting().disableHtmlEscaping().create();
@@ -101,22 +108,70 @@ public class SanityManager extends JsonReloadListener {
 		});
 	}
 	
+	/**
+	 * Grabs the current attack threshold for
+	 * when to attack the player. Returns -1
+	 * if no attack time is registered for the
+	 * current sanity level.
+	 * 
+	 * @param sanity The current sanity level.
+	 * @return The attack threshold in ticks.
+	 */
 	public int getAttackTime(int sanity) {
 		return this.sanityAttackMap.getOrDefault(sanity, -1);
 	}
 	
+	/**
+	 * Grabs the current maximum sanity recovery
+	 * threshold for when to recover the player's max sanity.
+	 * Returns -1 if no maximum recovery time is
+	 * registered for the current light level.
+	 * 
+	 * @param lightLevel The current light level.
+	 * @return The maximum recovery threshold in ticks.
+	 */
 	public int getMaxSanityRecoveryTime(int lightLevel) {
 		return this.maxSanityRecoverTimeMap.getOrDefault(lightLevel, -1);
 	}
 	
+	/**
+	 * Grabs the current sanity change
+	 * threshold for when to change the
+	 * player's sanity level. If the value
+	 * is negative, it will decrease the player
+	 * sanity.
+	 * 
+	 * @param lightLevel The current light level.
+	 * @param hearts The current player hearts.
+	 * @return The sanity change threshold in ticks.
+	 * 
+	 * @throws IndexOutOfBoundsException If there is no registered hearts value.
+	 */
 	public int getSanityLevelTime(int lightLevel, int hearts) {
 		return this.sanityLevelMap.getOrDefault(lightLevel, new ArrayList<>()).get(hearts);
 	}
 	
+	/**
+	 * Gets how much sanity should be lost
+	 * when damage is taken from this entity.
+	 * Returns 0 if the entity is not registered.
+	 * 
+	 * @param type The entity type from which the user took damage from.
+	 * @return The amount of sanity to lose.
+	 */
 	public int getSanityLoss(EntityType<?> type) {
 		return this.entitySanityLoss.getOrDefault(type, 0);
 	}
 	
+	/**
+	 * Gets how much sanity is gained whenever
+	 * an item is finished being use (e.g. food eaten,
+	 * potion drank). Returns 0 if the item is
+	 * not registered.
+	 * 
+	 * @param item The item from which the user finished using.
+	 * @return The amount of sanity to gain.
+	 */
 	public int getItemSanityEffect(Item item) {
 		return this.itemSanity.getOrDefault(item, 0);
 	}

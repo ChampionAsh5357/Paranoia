@@ -21,23 +21,17 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import io.github.championash5357.paranoia.api.callback.ITeleporterCallback;
-import io.github.championash5357.paranoia.api.callback.SanityCallback;
-import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+import org.apache.commons.lang3.tuple.Triple;
+
+import io.github.championash5357.paranoia.api.callback.*;
 import io.github.championash5357.paranoia.api.util.Timer;
 import io.github.championash5357.paranoia.common.Paranoia;
-import io.github.championash5357.paranoia.common.network.server.SAddGhostBlocks;
-import io.github.championash5357.paranoia.common.network.server.SMobSounds;
-import io.github.championash5357.paranoia.common.sanity.callback.AttributeCallback;
-import io.github.championash5357.paranoia.common.sanity.callback.ClientCallback;
-import io.github.championash5357.paranoia.common.sanity.callback.TeleportCallback;
-import io.github.championash5357.paranoia.common.sanity.callback.TickableCallback;
-import io.github.championash5357.paranoia.common.sanity.callback.handler.FoggyClient;
-import io.github.championash5357.paranoia.common.sanity.callback.handler.HeartOverlayClient;
-import io.github.championash5357.paranoia.common.sanity.callback.handler.MissingHeartClient;
-import io.github.championash5357.paranoia.common.sanity.callback.handler.ShaderClient;
+import io.github.championash5357.paranoia.common.network.server.*;
+import io.github.championash5357.paranoia.common.sanity.callback.*;
+import io.github.championash5357.paranoia.common.sanity.callback.handler.*;
 import io.github.championash5357.paranoia.common.util.Helper;
 import net.minecraft.block.*;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.ai.attributes.Attributes;
 import net.minecraft.entity.item.ItemEntity;
@@ -48,6 +42,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.World;
 import net.minecraft.world.gen.Heightmap.Type;
 import net.minecraftforge.common.ForgeMod;
@@ -64,6 +60,7 @@ public class CallbackRegistrar {
 		SanityCallbacks.registerClientCallback(HeartOverlayClient.HEART_OVERLAY, HeartOverlayClient::new);
 		SanityCallbacks.registerClientCallback(MissingHeartClient.MISSING_HEART, MissingHeartClient::new);
 		SanityCallbacks.registerClientCallback(FoggyClient.FOGGY, FoggyClient::new);
+		SanityCallbacks.registerClientCallback(MusicClient.MUSIC, MusicClient::new);
 		SanityCallbacks.registerAttributeCallback(Attributes.MOVEMENT_SPEED, new AttributeModifier(UUID.fromString("8462dd74-3bea-4710-ae76-1a91da304354"), "sanity.paranoia.generic.movement_speed", 0.0D, AttributeModifier.Operation.MULTIPLY_TOTAL), sanity -> {
 			if(sanity <= 5) return 0.75;
 			else if(sanity < 20) return -0.5;
@@ -171,6 +168,17 @@ public class CallbackRegistrar {
 				BlockPos pos = player.getPosition().north(-2).east(-2);
 				Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SAddGhostBlocks(Util.make(new HashMap<>(),
 						map -> IntStream.range(0, 25).filter(i -> i / 5 == 0 || i / 5 == 4 ? true : i % 5 == 0 || i % 5 == 4).forEach(i -> map.put(pos.north(i / 5).east(i % 5), Blocks.FIRE)))));
+			}
+		}));
+		SanityCallbacks.registerTickableCallback(new ResourceLocation(Paranoia.ID, "ghost_creepers"), 10, new Timer(6000, 3000, (sanity) -> {
+			if(sanity < 3) return 0.05;
+			else if(sanity < 7) return 0.5;
+			else return 1.0;
+		}, (player) -> {
+			if(Helper.random().nextInt(100) < 50) {
+				BlockPos pos = player.getPosition();
+				Paranoia.getInstance().getNetwork().send(PacketDistributor.PLAYER.with(() -> player), new SAddGhostEntities(Util.make(new HashMap<>(),
+						map -> IntStream.range(0, 8).forEach(i -> map.put(Triple.of(i * 45.0f, i * 45.0f, Vector3d.copyCentered(pos.south(MathHelper.ceil(-2 * Math.cos(i * 45.0f * Math.PI / 180.0f))).east(MathHelper.ceil(2 * Math.sin(i * 45.0f * Math.PI / 180.0f))))), EntityType.CREEPER)))));
 			}
 		}));
 		SanityCallbacks.registerMultiplier(player -> player.world.getDimensionKey() == World.THE_NETHER, -0.2);

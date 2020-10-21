@@ -21,44 +21,51 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.apache.commons.lang3.tuple.Triple;
+
 import io.github.championash5357.paranoia.client.ClientHandler;
 import io.github.championash5357.paranoia.common.network.IMessage;
-import net.minecraft.block.Block;
+import net.minecraft.entity.EntityType;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.fml.network.NetworkEvent.Context;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class SAddGhostBlocks implements IMessage {
+public class SAddGhostEntities implements IMessage {
 
-	private Map<BlockPos, Block> ghostBlocks;
+	private Map<Triple<Float, Float, Vector3d>, EntityType<?>> ghostEntities;
 	
-	public SAddGhostBlocks(Map<BlockPos, Block> ghostBlocks) {
-		this.ghostBlocks = ghostBlocks;
+	public SAddGhostEntities(Map<Triple<Float, Float, Vector3d>, EntityType<?>> ghostEntities) {
+		this.ghostEntities = ghostEntities;
 	}
 
 	@Override
 	public void encode(PacketBuffer buffer) {
-		buffer.writeInt(this.ghostBlocks.size());
-		this.ghostBlocks.forEach((pos, block) -> {
-			buffer.writeBlockPos(pos);
-			buffer.writeString(block.getRegistryName().toString());
+		buffer.writeInt(this.ghostEntities.size());
+		this.ghostEntities.forEach((triple, type) -> {
+			buffer.writeFloat(triple.getLeft());
+			buffer.writeFloat(triple.getMiddle());
+			buffer.writeDouble(triple.getRight().x);
+			buffer.writeDouble(triple.getRight().y);
+			buffer.writeDouble(triple.getRight().z);
+			buffer.writeString(type.getRegistryName().toString());
 		});
 	}
 
-	public static SAddGhostBlocks decode(PacketBuffer buffer) {
+	public static SAddGhostEntities decode(PacketBuffer buffer) {
 		int size = buffer.readInt();
-		Map<BlockPos, Block> blocks = new HashMap<>(size);
-		for(int i = 0; i < size; i++) blocks.put(buffer.readBlockPos(), ForgeRegistries.BLOCKS.getValue(new ResourceLocation(buffer.readString())));
-		return new SAddGhostBlocks(blocks);
+		Map<Triple<Float, Float, Vector3d>, EntityType<?>> entities = new HashMap<>(size);
+		for(int i = 0; i < size; i++) entities.put(Triple.of(buffer.readFloat(), buffer.readFloat(), new Vector3d(buffer.readDouble(), buffer.readDouble(), buffer.readDouble())), ForgeRegistries.ENTITIES.getValue(new ResourceLocation(buffer.readString())));
+		return new SAddGhostEntities(entities);
 	}
 	
 	@Override
 	public boolean handle(Supplier<Context> ctx) {
-		ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHandler.handle(this.ghostBlocks)));
+		ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientHandler.handleEntities(this.ghostEntities)));
 		return true;
 	}
 }
+

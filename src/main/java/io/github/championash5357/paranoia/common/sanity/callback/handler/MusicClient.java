@@ -21,15 +21,16 @@ import io.github.championash5357.paranoia.api.callback.HandlerClient;
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks.CallbackType;
 import io.github.championash5357.paranoia.common.Paranoia;
-import io.github.championash5357.paranoia.common.util.Helper;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.ResourceLocation;
 
-public class FoggyClient extends HandlerClient {
+public class MusicClient extends HandlerClient {
 
-	public static final ResourceLocation FOGGY = new ResourceLocation(Paranoia.ID, "foggy");
+	protected static final byte ELEVEN = 0b10;
+	public static final ResourceLocation MUSIC = new ResourceLocation(Paranoia.ID, "music");
+	public static final ResourceLocation ELEVEN_MUSIC = new ResourceLocation(Paranoia.ID, "eleven_music");
 	
-	public FoggyClient(ResourceLocation id) {
+	public MusicClient(ResourceLocation id) {
 		super(id);
 	}
 
@@ -38,16 +39,25 @@ public class FoggyClient extends HandlerClient {
 		if(phase == Phase.STOP) {
 			this.setStatus(STOP);
 			return true;
-		} else if(phase == Phase.START && this.getStatus() == NORMAL) return true;
+		} else if(phase == Phase.START && (this.getStatus() == ELEVEN || this.getStatus() == NORMAL)) return true;
 		else {
-			if(sanity <= 40 && prevSanity > 40 && Helper.random().nextInt(100) < 10) {
+			if(sanity <= 20 && prevSanity > 20) {
+				this.setStatus(ELEVEN);
+				return true;
+			} else if((this.getStatus() == ELEVEN && sanity > 20 && sanity < 40) || (sanity <= 40 && prevSanity > 40)) {
 				this.setStatus(NORMAL);
 				return true;
-			} else if(sanity > 50 && this.getStatus() == NORMAL) {
+			} else if(sanity > 40 && this.getStatus() != STOP) {
 				this.setStatus(STOP);
 				return true;
 			} else return false;
 		}
+	}
+	
+	@Override
+	protected ResourceLocation getId(byte status) {
+		if(status == ELEVEN) return ELEVEN_MUSIC;
+		return super.getId(status);
 	}
 
 	@Override

@@ -17,8 +17,20 @@
 
 package io.github.championash5357.paranoia.api.client;
 
+import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
+
+/**
+ * An interface used to handle when a client callback is sent
+ * across the network. The associated client callback must be
+ * registered using {@link SanityCallbacks#registerClientCallback(net.minecraft.util.ResourceLocation, java.util.function.Function)}.
+ */
 @FunctionalInterface
 public interface IClientCallback {
 
+	/**
+	 * Used to handle client callbacks.
+	 * 
+	 * @param sanity The current sanity value.
+	 */
 	void handle(int sanity);
 }

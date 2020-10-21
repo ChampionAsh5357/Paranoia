@@ -15,15 +15,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package io.github.championash5357.paranoia.common.util;
+package io.github.championash5357.paranoia.client.util;
 
-import java.util.Random;
+public class ValueTimer<T> {
 
-public class Helper {
-
-	private static final Random RANDOM = new Random();
+	private final T value;
+	private int timeRemaining;
+	public boolean remove;
 	
-	public static Random random() {
-		return RANDOM;
+	public ValueTimer(T value, int timeRemaining) {
+		this.value = value;
+		this.timeRemaining = timeRemaining;
+	}
+
+	public T getValue() {
+		return this.value;
+	}
+	
+	public void tick() {
+		this.timeRemaining--;
+		if(this.timeRemaining <= 0) this.remove = true;
 	}
 }

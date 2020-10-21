@@ -52,6 +52,12 @@ public class NetworkHandler {
 		.consumer(SAddGhostBlocks::handle)
 		.add();
 		
+		channel.messageBuilder(SAddGhostEntities.class, ++id, NetworkDirection.PLAY_TO_CLIENT)
+		.encoder(SAddGhostEntities::encode)
+		.decoder(SAddGhostEntities::decode)
+		.consumer(SAddGhostEntities::handle)
+		.add();
+		
 		return channel;
 	}
 }

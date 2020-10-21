@@ -15,5 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-//TODO: Document
+/**
+ * All physical client only API. Should be isolated
+ * from common or server code.
+ */
 package io.github.championash5357.paranoia.api.client;

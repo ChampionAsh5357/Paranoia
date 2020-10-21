@@ -21,8 +21,14 @@ import io.github.championash5357.paranoia.api.sanity.ISanity;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.CapabilityInject;
 
+/**
+ * Holds all capabilities used by this mod.
+ */
 public class CapabilityInstances {
 
+	/**
+	 * The sanity capability.
+	 */
 	@CapabilityInject(ISanity.class)
 	public static final Capability<ISanity> SANITY_CAPABILITY = null;
 }

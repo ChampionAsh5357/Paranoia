@@ -5,7 +5,8 @@
 	"compatibilityLevel": "JAVA_8",
 	"refmap": "paranoia.refmap.json",
 	"mixins": [ "PositionTriggerMixin" ],
-	"client": [ "ForgeIngameGuiMixin" ],
+	"client": [ "ForgeIngameGuiMixin",
+				"MinecraftMixin" ],
 	"injectors": {
 		"defaultRequire": 1
 	}

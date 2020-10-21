@@ -20,11 +20,14 @@ package io.github.championash5357.paranoia.client;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.tuple.Triple;
+
 import io.github.championash5357.paranoia.api.client.ClientCallbackRegistry;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.ISound.AttenuationType;
 import net.minecraft.client.audio.SimpleSound;
+import net.minecraft.entity.EntityType;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
@@ -41,5 +44,9 @@ public class ClientHandler {
 	
 	public static void handle(Map<BlockPos, Block> states) {
 		states.forEach((pos, block) -> ClientReference.getInstance().addBlockRender(pos, block.getDefaultState()));
+	}
+	
+	public static void handleEntities(Map<Triple<Float, Float, Vector3d>, EntityType<?>> states) {
+		states.forEach((vec, type) -> ClientReference.getInstance().addEntityRender(vec, type));
 	}
 }

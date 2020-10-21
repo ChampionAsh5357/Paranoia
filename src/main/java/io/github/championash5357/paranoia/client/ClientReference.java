@@ -20,12 +20,14 @@ package io.github.championash5357.paranoia.client;
 import java.util.*;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang3.tuple.Triple;
+
 import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 
 import io.github.championash5357.paranoia.api.client.ClientCallbackRegistry;
 import io.github.championash5357.paranoia.client.sanity.SanityManager;
-import io.github.championash5357.paranoia.client.util.StateTimer;
+import io.github.championash5357.paranoia.client.util.ValueTimer;
 import io.github.championash5357.paranoia.common.ISidedReference;
 import io.github.championash5357.paranoia.common.Paranoia;
 import io.github.championash5357.paranoia.common.sanity.callback.handler.*;
@@ -34,11 +36,14 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.player.ClientPlayerEntity;
 import net.minecraft.client.renderer.*;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.resources.IReloadableResourceManager;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.world.LightType;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
 import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
@@ -64,10 +69,12 @@ public class ClientReference implements ISidedReference {
 	private static ClientReference instance;
 	private Minecraft mc;
 	private SanityManager sanityManager;
-	private boolean enableMissingHealth;
-	private boolean enableSanityOverlay;
-	private boolean isVeryFoggy;
-	private final Map<BlockPos, StateTimer> ghostBlocks = new HashMap<>();
+	private boolean enableMissingHealth,
+					enableSanityOverlay,
+					isVeryFoggy;
+	private byte track;
+	private final Map<BlockPos, ValueTimer<BlockState>> ghostBlocks = new HashMap<>();
+	private final Map<Vector3d, ValueTimer<Entity>> ghostEntities = new HashMap<>();
 	
 	@Override
 	public void setup(IEventBus mod, IEventBus forge) {
@@ -102,7 +109,9 @@ public class ClientReference implements ISidedReference {
 		this.enableMissingHealth = false;
 		this.enableSanityOverlay = false;
 		this.isVeryFoggy = false;
+		this.track = 0;
 		this.ghostBlocks.clear();
+		this.ghostEntities.clear();
 	}
 	
 	private void client(final FMLClientSetupEvent event) {
@@ -121,6 +130,8 @@ public class ClientReference implements ISidedReference {
 		ClientCallbackRegistry.attachClientCallback(HeartOverlayClient.HEART_OVERLAY, sanity -> this.enableSanityOverlay = true, sanity -> this.enableSanityOverlay = false);
 		ClientCallbackRegistry.attachClientCallback(MissingHeartClient.MISSING_HEART, sanity -> this.enableMissingHealth = true, sanity -> this.enableMissingHealth = false);
 		ClientCallbackRegistry.attachClientCallback(FoggyClient.FOGGY, sanity -> this.isVeryFoggy = true, sanity -> this.isVeryFoggy = false);
+		ClientCallbackRegistry.attachClientCallback(MusicClient.MUSIC, sanity -> this.track = 0b1, sanity -> this.track = 0b0);
+		ClientCallbackRegistry.attachClientCallback(MusicClient.ELEVEN_MUSIC, sanity -> this.track = 0b10);
 	}
 	
 	private void fogDensity(final FogDensity event) {
@@ -132,25 +143,41 @@ public class ClientReference implements ISidedReference {
 	
 	private void renderWorldLast(final RenderWorldLastEvent event) {
 		MatrixStack stack = event.getMatrixStack();
-		Vector3d vec = this.mc.gameRenderer.getActiveRenderInfo().getProjectedView();
+		Vector3d projection = this.mc.gameRenderer.getActiveRenderInfo().getProjectedView();
 		IRenderTypeBuffer.Impl buffer = this.mc.getRenderTypeBuffers().getBufferSource();
 		this.ghostBlocks.forEach((pos, timer) -> {
-			if(Vector3d.copyCentered(pos).isWithinDistanceOf(vec, 16.0d)) {
+			if(Vector3d.copyCentered(pos).isWithinDistanceOf(projection, 16.0d)) {
 				stack.push();
-				stack.translate(pos.getX() - vec.x, pos.getY() - vec.y, pos.getZ() - vec.z);
-				this.mc.getBlockRendererDispatcher().renderModel(timer.getState(), pos, this.mc.world, stack, buffer.getBuffer(getBlockRenderType(timer.getState())), true, Helper.random(), EmptyModelData.INSTANCE);
+				stack.translate(pos.getX() - projection.x, pos.getY() - projection.y, pos.getZ() - projection.z);
+				this.mc.getBlockRendererDispatcher().renderModel(timer.getValue(), pos, this.mc.world, stack, buffer.getBuffer(getBlockRenderType(timer.getValue())), true, Helper.random(), EmptyModelData.INSTANCE);
 				stack.pop();
 			}
 		});
+		this.ghostEntities.forEach((vec, timer) -> {
+			if(vec.isWithinDistanceOf(vec, 16.0d))
+				this.mc.getRenderManager().renderEntityStatic(timer.getValue(), vec.x - projection.x, vec.y - projection.y - 0.5, vec.z - projection.z, 0.0f, 1.0f, stack, buffer, getPackedLight(new BlockPos(vec)));
+		});
 		buffer.finish();
+	}
+	
+	private final int getPackedLight(BlockPos pos) {
+		return LightTexture.packLight(this.mc.world.getLightFor(LightType.BLOCK, pos), this.mc.world.getLightFor(LightType.SKY, pos));
 	}
 	
 	private void clientTick(final ClientTickEvent event) {
 		if(event.phase == Phase.START) return;
 		if(!this.ghostBlocks.isEmpty()) {
-			Iterator<Entry<BlockPos, StateTimer>> it = this.ghostBlocks.entrySet().iterator();
+			Iterator<Entry<BlockPos, ValueTimer<BlockState>>> it = this.ghostBlocks.entrySet().iterator();
 			while(it.hasNext()) {
-				Entry<BlockPos, StateTimer> entry = it.next();
+				Entry<BlockPos, ValueTimer<BlockState>> entry = it.next();
+				entry.getValue().tick();
+				if(entry.getValue().remove) it.remove();
+			}
+		}
+		if(!this.ghostEntities.isEmpty()) {
+			Iterator<Entry<Vector3d, ValueTimer<Entity>>> it = this.ghostEntities.entrySet().iterator();
+			while(it.hasNext()) {
+				Entry<Vector3d, ValueTimer<Entity>> entry = it.next();
 				entry.getValue().tick();
 				if(entry.getValue().remove) it.remove();
 			}
@@ -173,8 +200,23 @@ public class ClientReference implements ISidedReference {
 		return this.enableSanityOverlay;
 	}
 	
+	public boolean shouldPlayThirteen() {
+		return this.track == 0b1;
+	}
+	
+	public boolean shouldPlayEleven() {
+		return this.track == 0b10;
+	}
+	
 	public void addBlockRender(BlockPos pos, BlockState state) {
-		this.ghostBlocks.put(pos, new StateTimer(state, Helper.random().nextInt(6000) + 3000));
+		this.ghostBlocks.put(pos, new ValueTimer<>(state, Helper.random().nextInt(6000) + 3000));
+	}
+	
+	public void addEntityRender(Triple<Float, Float, Vector3d> triple, EntityType<?> type) {
+		Entity entity = type.create(this.mc.world);
+		entity.setRenderYawOffset(triple.getLeft());
+		entity.setRotationYawHead(triple.getMiddle());
+		this.ghostEntities.put(triple.getRight(), new ValueTimer<>(entity, Helper.random().nextInt(6000) + 3000));
 	}
 	
 	private static RenderType getBlockRenderType(BlockState state) {

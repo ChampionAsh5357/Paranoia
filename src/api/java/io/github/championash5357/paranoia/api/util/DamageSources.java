@@ -19,7 +19,15 @@ package io.github.championash5357.paranoia.api.util;
 
 import net.minecraft.util.DamageSource;
 
+/**
+ * Holds all damage sources used by this mod.
+ */
 public class DamageSources {
 
+	/**
+	 * The paranoia damage source. Only affects
+	 * the player once the sanity level drops to
+	 * 5 in the current implementation.
+	 */
 	public static final DamageSource PARANOIA = (new DamageSource("paranoia")).setDamageBypassesArmor().setDamageIsAbsolute();
 }

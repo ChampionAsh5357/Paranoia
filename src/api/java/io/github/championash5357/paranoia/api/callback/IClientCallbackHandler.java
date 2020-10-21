@@ -24,12 +24,46 @@ import net.minecraft.nbt.INBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.util.INBTSerializable;
 
-//TODO: Document
+/**
+ * An interface used to handle when should something be sent
+ * to the client. Only the id set in {@link IClientCallbackHandler#getId()}
+ * is sent along with the current sanity level. Anything else
+ * should be handled on the logical server here or in a different
+ * callback.
+ * 
+ * @param <T> A generic that extends {@link INBT}
+ */
 public interface IClientCallbackHandler<T extends INBT> extends INBTSerializable<T> {
 	
+	/**
+	 * If this interface should send the id to the client. Should be
+	 * logically handled to include any bounds checking on sanity and
+	 * only return true when needed to save on resources.
+	 * 
+	 * @param player The server player.
+	 * @param sanity The current sanity level.
+	 * @param prevSanity The previous sanity level.
+	 * @param phase The current phase of the callback.
+	 * @return If the id should be sent to the client.
+	 */
 	boolean test(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase);
 	
+	/**
+	 * The id to send to the client.
+	 * 
+	 * @return The current id.
+	 */
 	ResourceLocation getId();
 	
+	/**
+	 * The callback type. Used to
+	 * check if the callback should
+	 * be singly handled or multiply
+	 * handled. For example, shaders
+	 * can only be applied one at a
+	 * time so they are singly handled.
+	 * 
+	 * @return The callback type.
+	 */
 	CallbackType getType();
 }

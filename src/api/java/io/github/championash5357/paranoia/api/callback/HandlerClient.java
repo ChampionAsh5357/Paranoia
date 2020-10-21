@@ -20,14 +20,33 @@ package io.github.championash5357.paranoia.api.callback;
 import net.minecraft.nbt.ByteNBT;
 import net.minecraft.util.ResourceLocation;
 
-//TODO: Document
+/**
+ * A basic implementation of {@link IClientCallbackHandler}.
+ * Sends the id on user implementation but handles the stored
+ * information and the string to send to the client.
+ * Uses bytes to leave a smaller footprint.
+ */
 public abstract class HandlerClient implements IClientCallbackHandler<ByteNBT> {
 
+	/**
+	 * The stop field. Should be set whenever
+	 * the user wants to stop the current action.
+	 */
 	protected static final byte STOP = 0b0;
+	/**
+	 * The default field. Should be set whenever
+	 * the user wants to start or continue the
+	 * current action.
+	 */
 	protected static final byte NORMAL = 0b1;
 	private final ResourceLocation id, stopId;
 	private byte handler;
 	
+	/**
+	 * A constructor for the client.
+	 * 
+	 * @param id The id of the callback. The stop id will be created internally from this.
+	 */
 	public HandlerClient(ResourceLocation id) {
 		this.id = id;
 		this.stopId = this.constructStop(this.id);
@@ -43,19 +62,43 @@ public abstract class HandlerClient implements IClientCallbackHandler<ByteNBT> {
 		this.handler = nbt.getByte();
 	}
 
+	/**
+	 * Sets the status of this handler.
+	 * 
+	 * @param status The new status.
+	 */
 	protected void setStatus(byte status) {
 		this.handler = status;
 	}
 	
+	/**
+	 * Gets the status of this handler.
+	 * 
+	 * @return The current status.
+	 */
 	protected byte getStatus() {
 		return handler;
 	}
 	
+	/**
+	 * Gets the current id to send to the client.
+	 * Should be overridden when adding new statuses
+	 * to send. Those statuses must have unique ids.
+	 * 
+	 * @param status The current status.
+	 * @return The id to send to the client.
+	 */
 	protected ResourceLocation getId(byte status) {
 		if(status == NORMAL) return this.id;
 		else return this.stopId;
 	}
 	
+	/**
+	 * Do not override. Internal use only.
+	 * 
+	 * @deprecated Use {@link HandlerClient#getId(byte)}
+	 */
+	@Deprecated
 	@Override
 	public ResourceLocation getId() {
 		return this.getId(this.handler);

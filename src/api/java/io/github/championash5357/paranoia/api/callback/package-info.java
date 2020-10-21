@@ -15,5 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-//TODO: Document
+/**
+ * Holds all callback information used to add effects when
+ * the sanity changes.
+ */
 package io.github.championash5357.paranoia.api.callback;

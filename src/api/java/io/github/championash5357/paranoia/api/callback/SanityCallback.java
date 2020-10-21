@@ -19,13 +19,26 @@ package io.github.championash5357.paranoia.api.callback;
 
 import net.minecraft.util.ResourceLocation;
 
-//TODO: Document
+/**
+ * A singleton handler used to attach
+ * callbacks to the sanity instance.
+ * Constructed only when loaded.
+ * Otherwise stored using their id.
+ */
 public class SanityCallback {
 
 	private final ResourceLocation id;
 	private final int startSanity, stopSanity;
 	private final ICallback handler;
 	
+	/**
+	 * A handler constructor.
+	 * 
+	 * @param id The current id of the callback.
+	 * @param startSanity The sanity level to load the callback.
+	 * @param stopSanity The sanity level to unload the callback.
+	 * @param handler The associated callback to load/unload.
+	 */
 	public SanityCallback(ResourceLocation id, int startSanity, int stopSanity, ICallback handler) {
 		this.id = id;
 		this.startSanity = startSanity;
@@ -33,18 +46,38 @@ public class SanityCallback {
 		this.handler = handler;
 	}
 	
+	/**
+	 * Gets the starting sanity level.
+	 * 
+	 * @return The sanity level to load the callback.
+	 */
 	public int getStartSanity() {
 		return startSanity;
 	}
 	
+	/**
+	 * Gets the stopping sanity level.
+	 * 
+	 * @return The sanity level to unload the callback.
+	 */
 	public int getStopSanity() {
 		return stopSanity;
 	}
 	
+	/**
+	 * Gets the associated callback handler to construct when loaded.
+	 * 
+	 * @return The associated callback.
+	 */
 	public ICallback getHandler() {
 		return handler;
 	}
 	
+	/**
+	 * Gets the id of the callback.
+	 * 
+	 * @return The id of the callback.
+	 */
 	public ResourceLocation getId() {
 		return id;
 	}

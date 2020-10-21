@@ -20,8 +20,20 @@ package io.github.championash5357.paranoia.api.util;
 import io.github.championash5357.paranoia.api.sanity.ISanity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 
+/**
+ * An interface that's called every tick. Grabs the player
+ * and current sanity interface. Must be registered using
+ * {@link ISanity#addTemporaryTickable(net.minecraft.util.ResourceLocation, ITickable)}.
+ * Tickables can only be removed via {@link ISanity#removeTemporaryTickable(net.minecraft.util.ResourceLocation)}.
+ */
 @FunctionalInterface
 public interface ITickable {
 
+	/**
+	 * A tick method.
+	 * 
+	 * @param player The server player
+	 * @param sanity The sanity instance
+	 */
 	void tick(ServerPlayerEntity player, ISanity sanity);
 }

@@ -35,7 +35,10 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
 
-//TODO: Document
+/**
+ * A basic implementation of {@link ISanity}.
+ * Used for the sanity capability on players.
+ */
 public class PlayerSanity implements ISanity {
 
 	@Nullable
