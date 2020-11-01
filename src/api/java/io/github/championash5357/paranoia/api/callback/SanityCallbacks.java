@@ -23,9 +23,8 @@ import java.util.function.*;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.tuple.Pair;
-
-import com.ibm.icu.impl.locale.XCldrStub.ImmutableMap;
 
 import io.github.championash5357.paranoia.api.sanity.ISanity;
 import io.github.championash5357.paranoia.api.sanity.SanityManager;

@@ -22,8 +22,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.apache.http.ParseException;
-
 import io.github.championash5357.paranoia.api.callback.ICallback.Phase;
 import io.github.championash5357.paranoia.api.callback.SanityCallback;
 import io.github.championash5357.paranoia.api.callback.SanityCallbacks;
@@ -300,7 +298,7 @@ public class PlayerSanity implements ISanity {
 					locations.add(location);
 					registryMap.remove(location);
 				} else {
-					throw new ParseException("The specified INBT is not formatted as a StringNBT.");
+					throw new RuntimeException("The specified INBT is not formatted as a StringNBT.");
 				}
 			});
 			this.unloadedCallbacks.put(Integer.valueOf(startSanity), locations);
@@ -317,7 +315,7 @@ public class PlayerSanity implements ISanity {
 					callbacks.add(callback);
 					registryMap.remove(callback.getId());
 				} else {
-					throw new ParseException("The specified INBT is not formatted as a StringNBT or CompoundNBT.");
+					throw new RuntimeException("The specified INBT is not formatted as a StringNBT or CompoundNBT.");
 				}
 			});
 			this.loadedCallbacks.put(Integer.valueOf(stopSanity), callbacks);
