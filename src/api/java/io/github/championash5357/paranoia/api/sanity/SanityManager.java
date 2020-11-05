@@ -19,6 +19,7 @@ package io.github.championash5357.paranoia.api.sanity;
 
 import java.util.*;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,6 +50,8 @@ public class SanityManager extends JsonReloadListener {
 	private final Map<Integer, List<Integer>> sanityLevelMap = new HashMap<>();
 	private final Map<EntityType<?>, Integer> entitySanityLoss = new HashMap<>();
 	private final Map<Item, Integer> itemSanity = new HashMap<>();
+	private final Map<Item, Pair<Float, Integer>> itemMaxSanity = new HashMap<>();
+	private final Map<Item, Integer> lightSanity = new HashMap<>();
 	
 	public SanityManager() {
 		super(GSON, "sanity");
@@ -61,12 +64,16 @@ public class SanityManager extends JsonReloadListener {
 		this.sanityLevelMap.clear();
 		this.entitySanityLoss.clear();
 		this.itemSanity.clear();
+		this.itemMaxSanity.clear();
+		this.lightSanity.clear();
 		map.forEach((id, element) -> {
 			if(id.getPath().equals("sanity_attack")) this.parseSanityAttack(JSONUtils.getJsonObject(element, "sanity_attack"));
 			else if(id.getPath().equals("sanity_levels")) this.parseSanityLevels(JSONUtils.getJsonObject(element, "sanity_levels"));
 			else if(id.getPath().equals("max_sanity")) this.parseMaxSanityRecovery(JSONUtils.getJsonObject(element, "max_sanity"));
 			else if(id.getPath().equals("entity_damage")) this.parseEntitySanityLoss(JSONUtils.getJsonObject(element, "entity_damage"));
 			else if(id.getPath().equals("item_sanity")) this.parseItemSanity(JSONUtils.getJsonObject(element, "item_sanity"));
+			else if(id.getPath().equals("item_max_sanity")) this.parseItemMaxSanity(JSONUtils.getJsonObject(element, "item_max_sanity"));
+			else if(id.getPath().equals("light_sanity")) this.parseLightSanity(JSONUtils.getJsonObject(element, "light_sanity"));
 			else throw new JsonIOException("The following json file is incorrectly named or placed: " + id);
 		});
 	}
@@ -103,8 +110,27 @@ public class SanityManager extends JsonReloadListener {
 		if(JSONUtils.getBoolean(obj, "replace", false)) this.itemSanity.clear();
 		JSONUtils.getJsonObject(obj, "entries").entrySet().forEach(entry -> {
 			Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(entry.getKey()));
-			if(item == null) LOGGER.warn("The entity {} is currently not present or doesn't exist. Skipping.", entry.getKey());
+			if(item == null) LOGGER.warn("The item {} is currently not present or doesn't exist. Skipping.", entry.getKey());
 			else this.itemSanity.put(item, entry.getValue().getAsInt());
+		});
+	}
+	
+	private void parseItemMaxSanity(JsonObject obj) {
+		if(JSONUtils.getBoolean(obj, "replace", false)) this.itemMaxSanity.clear();
+		JSONUtils.getJsonArray(obj, "entries").forEach(entry -> {
+			JsonObject obj_entry = JSONUtils.getJsonObject(entry, "entry");
+			Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(JSONUtils.getString(obj_entry, "item")));
+			if(item == null) LOGGER.warn("The item {} is currently not present or doesn't exist. Skipping.", JSONUtils.getString(obj_entry, "item"));
+			else this.itemMaxSanity.put(item, Pair.of(JSONUtils.getFloat(obj_entry, "chance", 1.0f), JSONUtils.getInt(obj_entry, "sanity", 1)));
+		});
+	}
+	
+	private void parseLightSanity(JsonObject obj) {
+		if(JSONUtils.getBoolean(obj, "replace", false)) this.lightSanity.clear();
+		JSONUtils.getJsonObject(obj, "entries").entrySet().forEach(entry -> {
+			Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(entry.getKey()));
+			if(item == null) LOGGER.warn("The item {} is currently not present or doesn't exist. Skipping.", entry.getKey());
+			else this.lightSanity.put(item, entry.getValue().getAsInt());
 		});
 	}
 	
@@ -174,5 +200,32 @@ public class SanityManager extends JsonReloadListener {
 	 */
 	public int getItemSanityEffect(Item item) {
 		return this.itemSanity.getOrDefault(item, 0);
+	}
+	
+	/**
+	 * Gets how much max sanity is gained whenever
+	 * an item is finished being use (e.g. food eaten,
+	 * potion drank). Returns 0 if the item is
+	 * not registered.
+	 * 
+	 * @param item The item from which the user finished using.
+	 * @return The amount of max sanity to gain.
+	 */
+	public int getItemMaxSanityEffect(Item item) {
+		Pair<Float, Integer> pair = this.itemMaxSanity.getOrDefault(item, Pair.of(1.0f, 0));
+		return Math.random() < pair.getLeft() ? pair.getRight() : 0;
+	}
+	
+	/**
+	 * Gets how much time should pass before this
+	 * held item should increment or decrement sanity.
+	 * This has no effect on the actual sanity loss from
+	 * environmental lighting.
+	 * 
+	 * @param item The held item.
+	 * @return The amount of time before sanity is affected.
+	 */
+	public int getItemLightSanity(Item item) {
+		return this.lightSanity.getOrDefault(item, 0);
 	}
 }

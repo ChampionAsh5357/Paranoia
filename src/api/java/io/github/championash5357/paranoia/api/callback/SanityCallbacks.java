@@ -51,6 +51,7 @@ public class SanityCallbacks {
 	private static final Map<ResourceLocation, Pair<Integer, ITickable>> TICKABLES = new HashMap<>();
 	private static final Map<Predicate<ServerPlayerEntity>, BiFunction<ServerPlayerEntity, ISanity, Double>> MULTIPLIERS = new HashMap<>();
 	private static final SanityManager MANAGER = new SanityManager();
+	private static boolean hardMode;
 	
 	/**
 	 * Returns the reload listener for the sanity manager.
@@ -59,6 +60,23 @@ public class SanityCallbacks {
 	 */
 	public static final SanityManager getSanityManager() {
 		return MANAGER;
+	}
+	
+	/**
+	 * Sets the game into hard mode. Used internally to not
+	 * expose the configuration file.
+	 * 
+	 * @param isHardMode If the world should be in hard mode.
+	 */
+	public static void toggleHardMode(boolean isHardMode) {
+		hardMode = isHardMode;
+	}
+	
+	/**
+	 * @return Whether the mod should be in hardmode.
+	 */
+	public static boolean isHardMode() {
+		return hardMode;
 	}
 	
 	/**

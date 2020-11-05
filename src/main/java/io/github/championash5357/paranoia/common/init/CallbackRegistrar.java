@@ -95,13 +95,13 @@ public class CallbackRegistrar {
 			else return 0.0;
 		});
 		SanityCallbacks.registerTeleporterCallback(30, (player) -> {
-			if(Helper.random().nextInt(100) < 5) teleportPlayer(player);
+			if(Helper.random().nextInt(100) < 1) teleportPlayer(player);
 		});
 		SanityCallbacks.registerTeleporterCallback(20, (player) -> {
-			if(Helper.random().nextInt(100) < 25) teleportPlayer(player);
+			if(Helper.random().nextInt(100) < 10) teleportPlayer(player);
 		});
 		SanityCallbacks.registerTeleporterCallback(10, (player) -> {
-			if(Helper.random().nextInt(100) < 75) teleportPlayer(player);
+			if(Helper.random().nextInt(100) < 25) teleportPlayer(player);
 		});
 		SanityCallbacks.registerTickableCallback(new ResourceLocation(Paranoia.ID, "the_doors"), 75, new Timer(3000, 3000, (sanity) -> {
 			if(sanity < 5) return 0.25;
@@ -183,6 +183,7 @@ public class CallbackRegistrar {
 		}));
 		SanityCallbacks.registerMultiplier(player -> player.world.getDimensionKey() == World.THE_NETHER, -0.2);
 		SanityCallbacks.registerMultiplier(player -> player.world.getDimensionKey() == World.THE_END, -0.5);
+		SanityCallbacks.registerMultiplier(player -> true, (player, inst) -> player.getTotalArmorValue() / 30.0);
 	}
 
 	private static void teleportPlayer(ServerPlayerEntity player) {

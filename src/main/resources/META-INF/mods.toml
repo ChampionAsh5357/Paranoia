@@ -24,6 +24,10 @@ credits="Thank you for the following ideas:
 \u00a7fsciwhiz12\u00a7f: \u00a76Sound effects behind the player.
 \u00a79jedijoe\u00a7f: \u00a76Ghost fires.
 \u00a7fsciwhiz12 \u00a7fand \u00a79Amber\u00a7f: \u00a76Ghost creepers.
+\u00a7aCommoble\u00a7f: \u00a76Armor affects the speed of sanity increase/decrease.
+\u00a79BlueDuck\u00a7f: \u00a76Night vision makes the world clear.
+\u00a79GiantLuigi4\u00a7f: \u00a76Holding items in your off hand might help.
+\u00a79GiantLuigi4\u00a7f: \u00a76Curing entities helps you to relax.
 "
 authors="\u00a7bChampionAsh5357"
 
@@ -39,6 +43,6 @@ Welcome to \u00a77Paranoia\u00a76, the mod that introduces a sanity bar and noth
 [[dependencies.paranoia]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.16.3]"
+    versionRange="[1.16.3, 1.17)"
     ordering="NONE"
     side="BOTH"

@@ -30,6 +30,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.nbt.*;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.common.util.Constants;
 
@@ -43,7 +44,7 @@ public class PlayerSanity implements ISanity {
 	private final PlayerEntity player;
 	private boolean firstInteraction;
 	private int minSanity, maxSanity; // Should be effectively final
-	private int prevSanity, sanity, tempMinSanity, tempMaxSanity;
+	private int protocolVersion, sanityLock, prevSanity, sanity, tempMinSanity, tempMaxSanity;
 	private int time, recoveryTime, attackTime; // Only used to keep track of tick information
 	private int threshold, recoveryThreshold, attackThreshold; // Thresholds on when to execute tick
 	private final Map<Integer, Set<ResourceLocation>> unloadedCallbacks = new HashMap<>();
@@ -56,7 +57,7 @@ public class PlayerSanity implements ISanity {
 	}
 
 	public PlayerSanity(@Nullable PlayerEntity player) {
-		this(player, 0, 100, 100, 10, 100);
+		this(player, 0, SanityCallbacks.isHardMode() ? 100 : 200, 100, 10, 100);
 	}
 
 	public PlayerSanity(@Nullable PlayerEntity player, int minSanity, int maxSanity) {
@@ -86,7 +87,7 @@ public class PlayerSanity implements ISanity {
 	public int getMaxSanity() {
 		return this.tempMaxSanity;
 	}
-	
+
 	@Override
 	public void addTemporaryTickable(ResourceLocation location, ITickable tickable) {
 		this.temporaryTickables.put(location.toString(), tickable);
@@ -125,7 +126,7 @@ public class PlayerSanity implements ISanity {
 	@Override
 	public void setMinSanity(int minSanity, boolean overrideChecks) {
 		if(!overrideChecks) if(player == null || player.world.isRemote || !((ServerPlayerEntity) player).interactionManager.survivalOrAdventure()) return;
-		this.tempMinSanity = MathHelper.clamp(minSanity, this.minSanity, this.tempMaxSanity);
+		this.tempMinSanity = MathHelper.clamp(minSanity, this.minSanity + 10, this.tempMaxSanity);
 		this.setSanity(this.sanity, overrideChecks);
 	}
 
@@ -135,31 +136,42 @@ public class PlayerSanity implements ISanity {
 	}
 
 	@Override
+	public void addSanityLock() {
+		this.sanityLock++;
+	}
+	
+	@Override
+	public void removeSanityLock() {
+		this.sanityLock = Math.max(this.sanityLock - 1, 0);
+	}
+
+	@Override
 	public void tick() {
 		if(this.player.world.isRemote) return;
 		ServerPlayerEntity player = (ServerPlayerEntity) this.player;
 		double multiplier = SanityCallbacks.handleMultipliers(player, this).apply(false);
-		int lightLevel = player.world.isThundering() ? player.world.getNeighborAwareLightSubtracted(player.getPosition(), 10) : player.world.getLight(player.getPosition());
+		BlockPos pos = player.getRidingEntity() != null ? new BlockPos(player.getPosX(), Math.ceil(player.getPosY()), player.getPosZ()) : player.getPosition();
+		int lightLevel = player.world.isThundering() ? player.world.getNeighborAwareLightSubtracted(pos, 10) : player.world.getLight(pos);
 		if(this.maxSanity != this.tempMaxSanity) {
 			int recoveryThreshold = SanityCallbacks.getSanityManager().getMaxSanityRecoveryTime(lightLevel);
 			this.recoveryThreshold = (int) (recoveryThreshold != -1 ? Math.max(this.recoveryThreshold, recoveryThreshold * multiplier) : -1);
 		}
 		int threshold = SanityCallbacks.getSanityManager().getSanityLevelTime(lightLevel, 20 - (int) MathHelper.clamp(player.getHealth(), 1, 20)); //TODO: Make more expansive later
 		threshold *= threshold < 0 ? SanityCallbacks.handleMultipliers(player, this).apply(true) : multiplier;
-		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold));
+		this.threshold = threshold > 0 ? Math.max(this.threshold, threshold) : (this.sanityLock == 0 ? -1 * Math.min(this.threshold == -1 ? Integer.MAX_VALUE : Math.abs(this.threshold), Math.abs(threshold)) : -1);
 
 		if(!this.temporaryTickables.isEmpty()) this.temporaryTickables.values().forEach(tickable -> tickable.tick(player, this));
 		if(this.attackThreshold != -1) this.attackTime++;
 		if(this.recoveryThreshold != -1 && this.maxSanity != this.tempMaxSanity) this.recoveryTime++;
 		else this.recoveryTime = 0;
-		this.time++;
+		if(this.threshold != -1) this.time++;
 
 		if(this.recoveryThreshold != -1 && this.recoveryTime >= this.recoveryThreshold) {
 			this.changeMaxSanity(1);
 			this.recoveryTime = 0;
 			this.recoveryThreshold = -1;
 		}
-		if(this.time >= Math.abs(this.threshold)) {
+		if(this.threshold != -1 && this.time >= Math.abs(this.threshold)) {
 			this.changeSanity(this.threshold > 0 ? 1 : -1);
 			this.time = 0;
 			this.threshold = -1;
@@ -171,7 +183,7 @@ public class PlayerSanity implements ISanity {
 			setAttackThreshold();
 		}
 	}
-	
+
 	private void setAttackThreshold() {
 		int attackThreshold = SanityCallbacks.getSanityManager().getAttackTime(this.sanity);
 		this.attackThreshold = attackThreshold != -1 ? Math.min(this.attackThreshold == -1 ? Integer.MAX_VALUE : this.attackThreshold, SanityCallbacks.getSanityManager().getAttackTime(this.sanity)) : -1;
@@ -235,6 +247,7 @@ public class PlayerSanity implements ISanity {
 	@Override
 	public CompoundNBT serializeNBT() {
 		CompoundNBT nbt = new CompoundNBT();
+		nbt.putInt("protocolVersion", this.protocolVersion);
 		nbt.putInt("minSanity", this.minSanity);
 		nbt.putInt("maxSanity", this.maxSanity);
 		nbt.putInt("sanity", this.sanity);
@@ -242,6 +255,7 @@ public class PlayerSanity implements ISanity {
 		nbt.putInt("tempMinSanity", this.tempMinSanity);
 		nbt.putInt("tempMaxSanity", this.tempMaxSanity);
 		nbt.putBoolean("firstInteraction", this.firstInteraction);
+		nbt.putInt("sanityTick", this.sanityLock);
 		nbt.putInt("time", this.time);
 		nbt.putInt("recoveryTime", this.recoveryTime);
 		nbt.putInt("attackTime", this.attackTime);
@@ -273,12 +287,20 @@ public class PlayerSanity implements ISanity {
 	@Override
 	public void deserializeNBT(CompoundNBT nbt) {
 		this.minSanity = nbt.getInt("minSanity");
-		this.maxSanity = nbt.getInt("maxSanity");
+		int prtl = nbt.getInt("protocolVersion");
+		if(prtl == 0 && !SanityCallbacks.isHardMode()) {
+			this.protocolVersion = 1;
+			this.maxSanity = 200;
+		} else {
+			this.protocolVersion = prtl != 0 ? prtl : 1;
+			this.maxSanity = nbt.getInt("maxSanity");
+		}
 		this.sanity = nbt.getInt("sanity");
 		this.prevSanity = nbt.getInt("prevSanity");
 		this.tempMinSanity = nbt.getInt("tempMinSanity");
 		this.tempMaxSanity = nbt.getInt("tempMaxSanity");
 		this.firstInteraction = nbt.getBoolean("firstInteraction");
+		this.sanityLock = nbt.getInt("sanityLock");
 		this.time = nbt.getInt("time");
 		this.recoveryTime = nbt.getInt("recoveryTime");
 		this.attackTime = nbt.getInt("attackTime");

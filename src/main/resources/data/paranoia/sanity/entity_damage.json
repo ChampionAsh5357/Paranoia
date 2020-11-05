@@ -1,7 +1,7 @@
 {
 	"entries": {
 		"minecraft:blaze": 8,
-		"minecraft:cave_spider": 5,
+		"minecraft:cave_spider": 3,
 		"minecraft:creeper": 20,
 		"minecraft:drowned": 3,
 		"minecraft:elder_guardian": 10,
@@ -27,7 +27,7 @@
 		"minecraft:skeleton": 3,
 		"minecraft:slime": 1,
 		"minecraft:stray": 6,
-		"minecraft:spider": 5,
+		"minecraft:spider": 3,
 		"minecraft:vex": 6,
 		"minecraft:vindicator": 5,
 		"minecraft:witch": 4,

@@ -178,4 +178,18 @@ public interface ISanity extends INBTSerializable<CompoundNBT> {
 	 * A tick method.
 	 */
 	void tick();
+	/**
+	 * Adds a sanity lock to determine whether
+	 * a sanity value can be ticked.
+	 * 
+	 * @param lock The sanity lock.
+	 */
+	void addSanityLock();
+	/**
+	 * Removes a sanity lock to determine whether
+	 * a sanity value can be ticked.
+	 * 
+	 * @param lock The sanity lock.
+	 */
+	void removeSanityLock();
 }

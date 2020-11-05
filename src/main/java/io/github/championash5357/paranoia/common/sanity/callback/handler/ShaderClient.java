@@ -37,7 +37,7 @@ public class ShaderClient extends HandlerClient {
 	
 	@Override
 	public boolean test(ServerPlayerEntity player, int sanity, int prevSanity, Phase phase) {
-		if(phase == Phase.STOP) {
+		if(phase == Phase.STOP || sanity >= 100) {
 			this.setStatus(STOP);
 			return true;
 		} else if(phase == Phase.START && (this.getStatus() == RED || this.getStatus() == NORMAL)) return true;
