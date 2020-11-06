@@ -150,7 +150,7 @@ public class PlayerSanity implements ISanity {
 		if(this.player.world.isRemote) return;
 		ServerPlayerEntity player = (ServerPlayerEntity) this.player;
 		double multiplier = SanityCallbacks.handleMultipliers(player, this).apply(false);
-		BlockPos pos = player.getRidingEntity() != null ? new BlockPos(player.getPosX(), Math.ceil(player.getPosY()), player.getPosZ()) : player.getPosition();
+		BlockPos pos = new BlockPos(player.getEyePosition(1.0f));
 		int lightLevel = player.world.isThundering() ? player.world.getNeighborAwareLightSubtracted(pos, 10) : player.world.getLight(pos);
 		if(this.maxSanity != this.tempMaxSanity) {
 			int recoveryThreshold = SanityCallbacks.getSanityManager().getMaxSanityRecoveryTime(lightLevel);
