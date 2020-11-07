@@ -40,8 +40,11 @@ public class MinecraftMixin {
 	
 	@Inject(method = "getBackgroundMusicSelector()Lnet/minecraft/client/audio/BackgroundMusicSelector;", at = @At("HEAD"), cancellable = true)
 	private void selectMusic(CallbackInfoReturnable<BackgroundMusicSelector> ci) {
-		if(ClientReference.getInstance().shouldPlayEleven()) ci.setReturnValue(ELEVEN);
-		else if(ClientReference.getInstance().shouldPlayThirteen()) ci.setReturnValue(THIRTEEN);
+		@Nullable ClientReference reference = ClientReference.getInstance();
+		if(reference != null) {
+			if(reference.shouldPlayEleven()) ci.setReturnValue(ELEVEN);
+			else if(reference.shouldPlayThirteen()) ci.setReturnValue(THIRTEEN);
+		}
 	}
 	
 	@ModifyArg(method = "processKeyBinds()V",

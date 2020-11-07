@@ -37,7 +37,7 @@ Welcome to \u00a77Paranoia\u00a76, the mod that introduces a sanity bar and noth
 [[dependencies.paranoia]]
     modId="forge"
     mandatory=true
-    versionRange="[34,)"
+    versionRange="[34.1.14,)"
     ordering="NONE"
     side="BOTH"    
 [[dependencies.paranoia]]
