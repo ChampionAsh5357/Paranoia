@@ -45,6 +45,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.vector.Vector3d;
 import net.minecraft.world.LightType;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedOutEvent;
+import net.minecraftforge.client.event.EntityViewRenderEvent.FogColors;
 import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -82,12 +84,14 @@ public class ClientReference implements ISidedReference {
 		this.sanityManager = new SanityManager();
 		mod.addListener(this::construct);
 		mod.addListener(this::client);
+		forge.addListener(this::playerLogin);
 		forge.addListener(this::playerLogout);
 		forge.addListener(EventPriority.HIGHEST, this::overlayPre);
 		forge.addListener(EventPriority.HIGHEST, this::overlayPost);
 		forge.addListener(this::fogDensity);
 		forge.addListener(this::renderWorldLast);
 		forge.addListener(this::clientTick);
+		forge.addListener(EventPriority.LOWEST, this::fogColor);
 	}
 
 	public static final ClientReference getInstance() {
@@ -105,7 +109,15 @@ public class ClientReference implements ISidedReference {
 		});
 	}
 	
-	private void playerLogout(final LoggedInEvent event) {
+	private void playerLogin(final LoggedInEvent event) {
+		this.resetClientCache();
+	}
+	
+	private void playerLogout(final LoggedOutEvent event) {
+		this.resetClientCache();
+	}
+	
+	private void resetClientCache() {
 		this.enableMissingHealth = false;
 		this.enableSanityOverlay = false;
 		this.isVeryFoggy = false;
@@ -132,6 +144,14 @@ public class ClientReference implements ISidedReference {
 		ClientCallbackRegistry.attachClientCallback(FoggyClient.FOGGY, sanity -> this.isVeryFoggy = true, sanity -> this.isVeryFoggy = false);
 		ClientCallbackRegistry.attachClientCallback(MusicClient.MUSIC, sanity -> this.track = 0b1, sanity -> this.track = 0b0);
 		ClientCallbackRegistry.attachClientCallback(MusicClient.ELEVEN_MUSIC, sanity -> this.track = 0b10);
+	}
+	
+	private void fogColor(final FogColors event) {
+		if(this.isVeryFoggy) {
+			event.setRed(event.getRed() * 0.2f);
+			event.setGreen(event.getGreen() * 0.2f);
+			event.setBlue(event.getBlue() * 0.2f);
+		}
 	}
 	
 	private void fogDensity(final FogDensity event) {
